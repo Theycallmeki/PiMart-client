@@ -13,7 +13,7 @@ const Header = () => {
         marginBottom: "15px" // slightly smaller margin
       }}
     >
-      <h1 style={{ fontSize: "1.5rem", margin: "5px 0" }}>PiMart</h1>
+      <h1 style={{ fontSize: "1.5rem", margin: "5px 0" }}>PiMart.</h1>
       <p style={{ fontSize: "0.9rem", margin: "0" }}>Smart Inventory & Self-Checkout</p>
 
       {/* Navbar */}
