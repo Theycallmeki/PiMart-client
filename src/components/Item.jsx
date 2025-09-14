@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 const Item = ({ cart, onQuantityChange }) => {
+  const navigate = useNavigate();
+
   // Calculate total of all items
   const grandTotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -19,7 +22,7 @@ const Item = ({ cart, onQuantityChange }) => {
               margin: "0 auto",
               borderCollapse: "collapse",
               width: "80%",
-              maxWidth: "600px"
+              maxWidth: "600px",
             }}
           >
             <thead>
@@ -43,7 +46,7 @@ const Item = ({ cart, onQuantityChange }) => {
                       min="1"
                       value={item.quantity}
                       onChange={(e) =>
-                        onQuantityChange(item.name, parseInt(e.target.value))
+                        onQuantityChange(item.id, parseInt(e.target.value))
                       }
                       style={{ width: "60px", textAlign: "center" }}
                     />
@@ -58,6 +61,22 @@ const Item = ({ cart, onQuantityChange }) => {
 
           {/* Display Grand Total */}
           <h3 style={{ marginTop: "15px" }}>Grand Total: ₱{grandTotal}</h3>
+
+          {/* Navigate using React Router */}
+          <button
+            onClick={() => navigate("/checkout")}
+            style={{
+              marginTop: "10px",
+              padding: "10px 15px",
+              borderRadius: "5px",
+              background: "green",
+              color: "white",
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            Proceed to Checkout
+          </button>
         </>
       )}
     </div>
