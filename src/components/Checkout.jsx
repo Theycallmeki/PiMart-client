@@ -27,7 +27,7 @@ function Checkout({ cart }) {
         price: Number(item.price) // convert to number
       }));
 
-      const res = await fetch("http://localhost:3005/api/checkout", {
+      const res = await fetch("http://localhost:3005/api/sales-history/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
