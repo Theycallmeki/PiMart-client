@@ -1,77 +1,39 @@
-// Checkout.jsx
-import React, { useState } from "react";
+import React from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function Checkout({ cart }) {
-  const [paymentMethod] = useState("PayPal"); // fixed payment option
-  const [orderPlaced, setOrderPlaced] = useState(false);
+  const BACKEND_URL = "http://localhost:3005/api/sales-history";
 
-  // Ensure numeric price for calculations
   const totalPrice = cart.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
 
-  const handlePlaceOrder = async () => {
-    if (cart.length === 0) {
-      alert("Your cart is empty!");
-      return;
-    }
+    const handlePlaceOrder = async () => {
+      if (cart.length === 0) return alert("Your cart is empty!");
 
-    try {
-      // Prepare payload with barcode and numeric price
-      const payload = cart.map(item => ({
-        barcode: item.barcode,
-        name: item.name,
-        quantity: Number(item.quantity),
-        price: Number(item.price) // convert to number
-      }));
+      try {
+        const res = await fetch(`${BACKEND_URL}/create-checkout-session`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
+        });
 
-      const res = await fetch("http://localhost:3005/api/sales-history/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ cart: payload, paymentMethod }),
-      });
+        const data = await res.json();
+          if (data.checkoutUrl) {window.location.href = data.checkoutUrl;}
 
-      const data = await res.json();
-      console.log("Checkout response:", data);
-      setOrderPlaced(true);
-    } catch (err) {
-      console.error("Error during checkout:", err);
-    }
-  };
-
-  if (orderPlaced) {
-    return (
-      <div className="container mt-5">
-        <div className="card shadow-sm p-4">
-          <h2 className="mb-3">Order Confirmation</h2>
-          <p>Thank you for your purchase!</p>
-
-          <h5 className="mt-3">Receipt:</h5>
-          <ul className="list-group mb-3">
-            {cart.map((item) => (
-              <li key={item.barcode} className="list-group-item d-flex justify-content-between">
-                {item.name} (x{item.quantity})
-                <span>₱{Number(item.price) * item.quantity}</span>
-              </li>
-            ))}
-          </ul>
-
-          <p className="fw-bold">Total: ₱{totalPrice}</p>
-          <p>Payment Method: {paymentMethod}</p>
-        </div>
-      </div>
-    );
-  }
+                     
+      } catch (err) {
+        console.error("Error during checkout:", err);
+        alert("Something went wrong.");
+      }
+    };
 
   return (
     <div className="container mt-5">
       <div className="card shadow-sm p-4">
         <h2 className="mb-4">Checkout</h2>
 
-        {/* Cart Review */}
         <div className="mb-4">
           <h5>Your Items:</h5>
           {cart.length === 0 ? (
@@ -79,7 +41,10 @@ function Checkout({ cart }) {
           ) : (
             <ul className="list-group mb-3">
               {cart.map((item) => (
-                <li key={item.barcode} className="list-group-item d-flex justify-content-between">
+                <li
+                  key={item.barcode}
+                  className="list-group-item d-flex justify-content-between"
+                >
                   {item.name} (x{item.quantity})
                   <span>₱{Number(item.price) * item.quantity}</span>
                 </li>
@@ -89,23 +54,13 @@ function Checkout({ cart }) {
           <p className="fw-bold">Total: ₱{totalPrice}</p>
         </div>
 
-        {/* Payment Method */}
         <div className="mb-4">
           <h5>Payment Method:</h5>
-          <input
-            type="text"
-            className="form-control"
-            value={paymentMethod}
-            readOnly
-          />
+          <input type="text" className="form-control" value="GCash" readOnly />
         </div>
 
-        {/* Place Order Button */}
-        <button
-          className="btn btn-primary w-100"
-          onClick={handlePlaceOrder}
-        >
-          Confirm Order
+        <button className="btn btn-primary w-100" onClick={handlePlaceOrder}>
+          Pay with GCash
         </button>
       </div>
     </div>

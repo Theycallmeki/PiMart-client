@@ -1,42 +1,56 @@
 // App.js
-import React, { useState } from "react";
+import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
 import Scanner from "./components/Scanner";
 import Item from "./components/Item";
 import Checkout from "./components/Checkout";
 
-function App() {
-  const [cart, setCart] = useState([]);
+function Success() {
+  React.useEffect(() => {
+    localStorage.removeItem("cart");
+  }, []);
 
- // Add item to cart
-const handleAddToCart = (product) => {
-  console.log("Adding to cart:", product);
-
-  setCart((prevCart) => {
-    const existingItem = prevCart.find((item) => item.barcode === product.barcode);
-    if (existingItem) {
-      console.log("Item already in cart, increasing quantity:", product.barcode);
-      return prevCart.map((item) =>
-        item.barcode === product.barcode
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      );
-    } else {
-      console.log("New item added:", product.barcode);
-      return [...prevCart, { ...product, quantity: 1 }];
-    }
-  });
-};
-
-  // Handle quantity changes from Item component
-const handleQuantityChange = (barcode, newQuantity) => {
-  setCart((prevCart) =>
-    prevCart.map((item) =>
-      item.barcode === barcode ? { ...item, quantity: newQuantity } : item
-    )
+  return (
+    <div className="container mt-5">
+      <div className="card p-4 shadow-sm">
+        <h2>Payment Successful!</h2>
+        <p>Your payment has been processed. You will receive a confirmation from GCash shortly.</p>
+        <a href="/" className="btn btn-primary mt-3">
+          Back to Home
+        </a>
+      </div>
+    </div>
   );
-};
+}
+
+function App() {
+  const [cart, setCart] = React.useState([]);
+
+  const handleAddToCart = (product) => {
+    setCart((prevCart) => {
+      const existingItem = prevCart.find(
+        (item) => item.barcode === product.barcode
+      );
+      if (existingItem) {
+        return prevCart.map((item) =>
+          item.barcode === product.barcode
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        return [...prevCart, { ...product, quantity: 1 }];
+      }
+    });
+  };
+
+  const handleQuantityChange = (barcode, newQuantity) => {
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.barcode === barcode ? { ...item, quantity: newQuantity } : item
+      )
+    );
+  };
 
   return (
     <Router>
@@ -51,6 +65,7 @@ const handleQuantityChange = (barcode, newQuantity) => {
           element={<Item cart={cart} onQuantityChange={handleQuantityChange} />}
         />
         <Route path="/checkout" element={<Checkout cart={cart} />} />
+        <Route path="/success" element={<Success />} />
       </Routes>
     </Router>
   );
