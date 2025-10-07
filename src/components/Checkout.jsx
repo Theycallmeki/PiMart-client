@@ -1,17 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function Checkout({ cart }) {
   const BACKEND_URL = "http://localhost:3005/api/sales-history";
+  const [paymentMethod, setPaymentMethod] = useState("gcash");
+  const [cashCode, setCashCode] = useState("");
+  const [generatedCode, setGeneratedCode] = useState(null);
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
 
-    const handlePlaceOrder = async () => {
-      if (cart.length === 0) return alert("Your cart is empty!");
+  const handlePlaceOrder = async () => {
+    if (cart.length === 0) return alert("Your cart is empty!");
 
+    if (paymentMethod === "gcash") {
       try {
         const res = await fetch(`${BACKEND_URL}/create-checkout-session`, {
           method: "POST",
@@ -20,14 +24,48 @@ function Checkout({ cart }) {
         });
 
         const data = await res.json();
-          if (data.checkoutUrl) {window.location.href = data.checkoutUrl;}
-
-                     
+        if (data.checkoutUrl) window.location.href = data.checkoutUrl;
       } catch (err) {
         console.error("Error during checkout:", err);
         alert("Something went wrong.");
       }
-    };
+    } else if (paymentMethod === "cash") {
+      // Request 6-digit code
+      try {
+        const res = await fetch(`${BACKEND_URL}/cash-code`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
+        });
+        const data = await res.json();
+        setGeneratedCode(data.code);
+        alert(`Your 6-digit cash code is: ${data.code}`); // For demo; in real life, you could show this in UI
+      } catch (err) {
+        console.error(err);
+        alert("Failed to generate cash code.");
+      }
+    }
+  };
+
+  const handleConfirmCash = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/confirm-cash`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: cashCode }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message);
+        setCashCode("");
+      } else {
+        alert(data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error confirming cash payment.");
+    }
+  };
 
   return (
     <div className="container mt-5">
@@ -56,11 +94,34 @@ function Checkout({ cart }) {
 
         <div className="mb-4">
           <h5>Payment Method:</h5>
-          <input type="text" className="form-control" value="GCash" readOnly />
+          <select
+            className="form-control"
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value)}
+          >
+            <option value="gcash">GCash</option>
+            <option value="cash">Cash</option>
+          </select>
         </div>
 
+        {paymentMethod === "cash" && generatedCode && (
+          <div className="mb-3">
+            <h5>Enter 6-digit cash code:</h5>
+            <input
+              type="text"
+              className="form-control"
+              value={cashCode}
+              onChange={(e) => setCashCode(e.target.value)}
+              maxLength={6}
+            />
+            <button className="btn btn-success mt-2 w-100" onClick={handleConfirmCash}>
+              Confirm Cash Payment
+            </button>
+          </div>
+        )}
+
         <button className="btn btn-primary w-100" onClick={handlePlaceOrder}>
-          Pay with GCash
+          {paymentMethod === "gcash" ? "Pay with GCash" : "Generate Cash Code"}
         </button>
       </div>
     </div>
