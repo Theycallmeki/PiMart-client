@@ -1,0 +1,65 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body, #root {
+  height: 100vh;
+  width: 100vw;
+  overflow-x: hidden; /* hide horizontal scroll */
+  overflow-y: auto;   /* allow vertical scrolling for mobile dropdown */
+  font-family: Arial, sans-serif;
+  position: relative;
+}
+
+
+/* Background container */
+.background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1; /* behind everything */
+  background: linear-gradient(135deg, #1e3c72, #2a5298, #00d2ff, #3a7bd5);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+/* Waves */
+.wave {
+  position: absolute;
+  bottom: 0;
+  width: 200%;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 43%;
+  animation: waveMove 10s linear infinite;
+}
+
+.wave:nth-child(2) {
+  bottom: 10px;
+  animation-duration: 15s;
+  opacity: 0.5;
+}
+
+.wave:nth-child(3) {
+  bottom: 20px;
+  animation-duration: 20s;
+  opacity: 0.3;
+}
+
+/* Keyframes */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes waveMove {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

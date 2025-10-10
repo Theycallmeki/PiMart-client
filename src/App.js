@@ -1,4 +1,3 @@
-// App.jsx
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Header from "./components/Header";
@@ -6,6 +5,7 @@ import Scanner from "./components/Scanner";
 import Item from "./components/Item";
 import Checkout from "./components/Checkout";
 import BestSellers from "./components/BestSellers"; // ✅ Import Best Sellers Component
+import "./App.css"; // ✅ Import the global background CSS
 
 function Success() {
   React.useEffect(() => {
@@ -69,6 +69,13 @@ function App() {
 
   return (
     <Router>
+      {/* ✅ Animated Background */}
+      <div className="background">
+        <div className="wave"></div>
+        <div className="wave"></div>
+        <div className="wave"></div>
+      </div>
+
       <Header />
       <Routes>
         {/* ✅ Scanner Page */}
@@ -103,7 +110,10 @@ function App() {
         <Route path="/success" element={<Success />} />
 
         {/* ✅ AI Best Seller Predictor Page */}
-        <Route path="/best" element={<BestSellers onAddToCart={handleAddToCart} />} />
+        <Route
+          path="/best"
+          element={<BestSellers onAddToCart={handleAddToCart} />}
+        />
       </Routes>
     </Router>
   );
