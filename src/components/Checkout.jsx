@@ -29,23 +29,26 @@ function Checkout({ cart }) {
         console.error("Error during checkout:", err);
         alert("Something went wrong.");
       }
-    } else if (paymentMethod === "cash") {
-      // Request 6-digit code
-      try {
-        const res = await fetch(`${BACKEND_URL}/cash-code`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart }),
-        });
-        const data = await res.json();
-        setGeneratedCode(data.code);
-        alert(`Your 6-digit cash code is: ${data.code}`); // For demo; in real life, you could show this in UI
-      } catch (err) {
-        console.error(err);
-        alert("Failed to generate cash code.");
+      } else if (paymentMethod === "cash") {
+        try {
+          // Send cart to backend before admin generates code
+          const res = await fetch(`${BACKEND_URL}/save-cart`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cart }),
+          });
+
+          if (!res.ok) throw new Error("Failed to send cart.");
+
+          alert(
+            "Please ask the admin for your 6-digit cash code."
+          );
+        } catch (err) {
+          console.error(err);
+          alert("Failed to send cart to admin.");
+        }
       }
-    }
-  };
+    };
 
   const handleConfirmCash = async () => {
     try {
@@ -104,9 +107,9 @@ function Checkout({ cart }) {
           </select>
         </div>
 
-        {paymentMethod === "cash" && generatedCode && (
+        {paymentMethod === "cash" && (
           <div className="mb-3">
-            <h5>Enter 6-digit cash code:</h5>
+            <h5>Enter 6-digit cash code (provided by admin):</h5>
             <input
               type="text"
               className="form-control"
@@ -114,7 +117,10 @@ function Checkout({ cart }) {
               onChange={(e) => setCashCode(e.target.value)}
               maxLength={6}
             />
-            <button className="btn btn-success mt-2 w-100" onClick={handleConfirmCash}>
+            <button
+              className="btn btn-success mt-2 w-100"
+              onClick={handleConfirmCash}
+            >
               Confirm Cash Payment
             </button>
           </div>
