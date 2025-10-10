@@ -2,12 +2,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
-const Scanner = ({ onAddToCart }) => {
+const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
-  const [product, setProduct] = useState(null);
+  const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [controls, setControls] = useState(null);
 
+  // Initialize barcode scanner
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader();
 
@@ -27,67 +28,54 @@ const Scanner = ({ onAddToCart }) => {
     return () => controls && typeof controls.stop === "function" && controls.stop();
   }, [isScanning]);
 
-  // 🔹 Fetch product from backend instead of mock database
+  // Fetch product details from backend
   const fetchProduct = async (barcode) => {
     try {
       const res = await fetch(`http://localhost:3005/api/items/barcode/${barcode}`);
-      if (!res.ok) {
-        throw new Error("Item not found");
-      }
+      if (!res.ok) throw new Error("Item not found");
       const data = await res.json();
 
       const foundProduct = {
-        barcode: data.barcode,  // use barcode
+        barcode: data.barcode,
         name: data.name,
         category: data.category,
         price: parseFloat(data.price),
       };
 
-      console.log("Scanned product:", foundProduct);
-      setProduct(foundProduct);
+      console.log("✅ Scanned product:", foundProduct);
       onAddToCart(foundProduct);
     } catch (err) {
       console.error(err.message);
       const unknownProduct = {
-        barcode: barcode,      // use barcode
+        barcode: barcode,
         name: "Unknown Product",
         category: "N/A",
         price: 0,
       };
-      setProduct(unknownProduct);
       onAddToCart(unknownProduct);
     }
   };
 
-  // 🔹 Handle uploaded barcode image
-  const handleImageUpload = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+  // Manually add a product by entering barcode
+  const handleManualAdd = () => {
+    if (!barcodeInput.trim()) return alert("Please enter a barcode!");
+    fetchProduct(barcodeInput.trim());
+    setBarcodeInput("");
+  };
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.src = reader.result;
-
-      img.onload = async () => {
-        const codeReader = new BrowserMultiFormatReader();
-        try {
-          const result = await codeReader.decodeFromImageElement(img);
-          console.log("Image scanned barcode:", result.getText());
-          fetchProduct(result.getText());
-        } catch (err) {
-          console.error("No barcode found in image", err);
-          alert("No barcode detected in this image.");
-        }
-      };
-    };
-    reader.readAsDataURL(file);
+  // Adjust quantity with +/− buttons
+  const adjustQuantity = (barcode, delta) => {
+    const item = cart.find((i) => i.barcode === barcode);
+    if (!item) return;
+    const newQty = Math.max(1, item.quantity + delta);
+    onQuantityChange(barcode, newQty);
   };
 
   return (
     <div style={{ textAlign: "center", marginTop: "20px" }}>
-      <h2>Scan Product</h2>
+      <h2>📷 Barcode Scanner</h2>
 
+      {/* Toggle Camera */}
       <button
         onClick={() => setIsScanning(!isScanning)}
         style={{
@@ -103,36 +91,139 @@ const Scanner = ({ onAddToCart }) => {
         {isScanning ? "Stop Camera" : "Start Camera"}
       </button>
 
-      <input type="file" accept="image/*" onChange={handleImageUpload} style={{ margin: "10px" }} />
-
-      <video
-        ref={videoRef}
-        style={{
-          width: "100%",
-          maxWidth: "400px",
-          border: "1px solid #ccc",
-          display: isScanning ? "block" : "none",
-        }}
-      />
-
-      {product && (
-        <div
+      {/* Manual Barcode Input */}
+      <div style={{ marginTop: "10px" }}>
+        <input
+          type="text"
+          placeholder="Enter barcode manually"
+          value={barcodeInput}
+          onChange={(e) => setBarcodeInput(e.target.value)}
           style={{
+            padding: "8px",
+            width: "250px",
+            marginRight: "10px",
+            borderRadius: "5px",
             border: "1px solid #ccc",
-            borderRadius: "8px",
-            padding: "15px",
-            marginTop: "15px",
-            maxWidth: "300px",
-            marginLeft: "auto",
-            marginRight: "auto",
+          }}
+        />
+        <button
+          onClick={handleManualAdd}
+          style={{
+            background: "blue",
+            color: "white",
+            border: "none",
+            padding: "8px 12px",
+            borderRadius: "5px",
+            cursor: "pointer",
           }}
         >
-          <h3>{product.name}</h3>
-          <p>Category: {product.category}</p>
-          <p><b>₱{product.price}</b></p>
-          <button onClick={() => onAddToCart(product)}>Add to Cart</button>
-        </div>
-      )}
+          Add
+        </button>
+      </div>
+
+      {/* Camera View - Centered */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          marginTop: "20px",
+        }}
+      >
+        <video
+          ref={videoRef}
+          style={{
+            width: "100%",
+            maxWidth: "400px",
+            border: "3px solid #333",
+            borderRadius: "10px",
+            boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+            display: isScanning ? "block" : "none",
+          }}
+        />
+      </div>
+
+      {/* Show Scanned Items */}
+      <div style={{ marginTop: "25px" }}>
+        {cart.length === 0 ? (
+          <p>No items scanned yet.</p>
+        ) : (
+          cart.map((item) => (
+            <div
+              key={item.barcode}
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: "10px",
+                padding: "15px",
+                margin: "15px auto",
+                width: "90%",
+                maxWidth: "400px",
+              }}
+            >
+              <h3>{item.name}</h3>
+              <p>₱{item.price.toFixed(2)}</p>
+              <p style={{ color: "#888" }}>{item.category}</p>
+
+              {/* Quantity Controls */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginTop: "10px",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <button
+                    onClick={() => adjustQuantity(item.barcode, -1)}
+                    style={{
+                      background: "red",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "5px",
+                      width: "30px",
+                      height: "30px",
+                      fontSize: "18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    −
+                  </button>
+                  <span>{item.quantity}</span>
+                  <button
+                    onClick={() => adjustQuantity(item.barcode, 1)}
+                    style={{
+                      background: "green",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "5px",
+                      width: "30px",
+                      height: "30px",
+                      fontSize: "18px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => onDeleteItem(item.barcode)}
+                  style={{
+                    background: "gray",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    padding: "5px 10px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 };
