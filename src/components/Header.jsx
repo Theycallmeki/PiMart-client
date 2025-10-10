@@ -10,13 +10,15 @@ const Header = () => {
         color: "white",
         textAlign: "center",
         borderRadius: "8px",
-        marginBottom: "15px" // slightly smaller margin
+        marginBottom: "15px", // slightly smaller margin
       }}
     >
       <h1 style={{ fontSize: "1.5rem", margin: "5px 0" }}>PiMart</h1>
-      <p style={{ fontSize: "0.9rem", margin: "0" }}>Smart Inventory & Self-Checkout</p>
+      <p style={{ fontSize: "0.9rem", margin: "0" }}>
+        Smart Inventory & Self-Checkout
+      </p>
 
-      {/* Navbar */}
+      {/* ✅ Navbar */}
       <nav style={{ marginTop: "8px" }}>
         <Link
           to="/"
@@ -25,11 +27,12 @@ const Header = () => {
             margin: "0 12px",
             textDecoration: "none",
             fontWeight: "bold",
-            fontSize: "0.9rem"
+            fontSize: "0.9rem",
           }}
         >
           Home
         </Link>
+
         <Link
           to="/scanner"
           style={{
@@ -37,10 +40,24 @@ const Header = () => {
             margin: "0 12px",
             textDecoration: "none",
             fontWeight: "bold",
-            fontSize: "0.9rem"
+            fontSize: "0.9rem",
           }}
         >
           Scanner
+        </Link>
+
+        {/* ✅ New Best Sellers Link */}
+        <Link
+          to="/best"
+          style={{
+            color: "white",
+            margin: "0 12px",
+            textDecoration: "none",
+            fontWeight: "bold",
+            fontSize: "0.9rem",
+          }}
+        >
+          Best Sellers
         </Link>
       </nav>
     </header>

@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Scanner from "./components/Scanner";
 import Item from "./components/Item";
 import Checkout from "./components/Checkout";
+import BestSellers from "./components/BestSellers"; // ✅ Import Best Sellers Component
 
 function Success() {
   React.useEffect(() => {
@@ -100,6 +101,9 @@ function App() {
 
         {/* ✅ Success Page */}
         <Route path="/success" element={<Success />} />
+
+        {/* ✅ AI Best Seller Predictor Page */}
+        <Route path="/best" element={<BestSellers onAddToCart={handleAddToCart} />} />
       </Routes>
     </Router>
   );
