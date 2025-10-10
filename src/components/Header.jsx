@@ -17,7 +17,7 @@ const Header = () => {
 
       <div className="header-content">
         <h1 className="logo">🛒 PiMart</h1>
-        <p className="subtitle">Smart Inventory & Self-Checkout</p>
+        <p className="subtitle"></p>
 
         {/* Hamburger button for mobile */}
         <button
