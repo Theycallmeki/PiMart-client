@@ -5,7 +5,6 @@ function Checkout({ cart }) {
   const BACKEND_URL = "http://localhost:3005/api/sales-history";
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [cashCode, setCashCode] = useState("");
-  const [generatedCode, setGeneratedCode] = useState(null);
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
@@ -29,26 +28,23 @@ function Checkout({ cart }) {
         console.error("Error during checkout:", err);
         alert("Something went wrong.");
       }
-      } else if (paymentMethod === "cash") {
-        try {
-          // Send cart to backend before admin generates code
-          const res = await fetch(`${BACKEND_URL}/save-cart`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ cart }),
-          });
+    } else if (paymentMethod === "cash") {
+      try {
+        const res = await fetch(`${BACKEND_URL}/save-cart`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cart }),
+        });
 
-          if (!res.ok) throw new Error("Failed to send cart.");
+        if (!res.ok) throw new Error("Failed to send cart.");
 
-          alert(
-            "Please ask the admin for your 6-digit cash code."
-          );
-        } catch (err) {
-          console.error(err);
-          alert("Failed to send cart to admin.");
-        }
+        alert("Please ask the admin for your 6-digit cash code.");
+      } catch (err) {
+        console.error(err);
+        alert("Failed to send cart to admin.");
       }
-    };
+    }
+  };
 
   const handleConfirmCash = async () => {
     try {

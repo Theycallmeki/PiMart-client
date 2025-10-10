@@ -1,5 +1,5 @@
 // Scanner.jsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
@@ -7,6 +7,39 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [controls, setControls] = useState(null);
+
+  // Fetch product details from backend
+  const fetchProduct = useCallback(
+    async (barcode) => {
+      try {
+        const res = await fetch(
+          `http://localhost:3005/api/items/barcode/${barcode}`
+        );
+        if (!res.ok) throw new Error("Item not found");
+        const data = await res.json();
+
+        const foundProduct = {
+          barcode: data.barcode,
+          name: data.name,
+          category: data.category,
+          price: parseFloat(data.price),
+        };
+
+        console.log("✅ Scanned product:", foundProduct);
+        onAddToCart(foundProduct);
+      } catch (err) {
+        console.error(err.message);
+        const unknownProduct = {
+          barcode: barcode,
+          name: "Unknown Product",
+          category: "N/A",
+          price: 0,
+        };
+        onAddToCart(unknownProduct);
+      }
+    },
+    [onAddToCart]
+  );
 
   // Initialize barcode scanner
   useEffect(() => {
@@ -25,36 +58,9 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
       controls.stop();
     }
 
-    return () => controls && typeof controls.stop === "function" && controls.stop();
-  }, [isScanning]);
-
-  // Fetch product details from backend
-  const fetchProduct = async (barcode) => {
-    try {
-      const res = await fetch(`http://localhost:3005/api/items/barcode/${barcode}`);
-      if (!res.ok) throw new Error("Item not found");
-      const data = await res.json();
-
-      const foundProduct = {
-        barcode: data.barcode,
-        name: data.name,
-        category: data.category,
-        price: parseFloat(data.price),
-      };
-
-      console.log("✅ Scanned product:", foundProduct);
-      onAddToCart(foundProduct);
-    } catch (err) {
-      console.error(err.message);
-      const unknownProduct = {
-        barcode: barcode,
-        name: "Unknown Product",
-        category: "N/A",
-        price: 0,
-      };
-      onAddToCart(unknownProduct);
-    }
-  };
+    return () =>
+      controls && typeof controls.stop === "function" && controls.stop();
+  }, [isScanning, controls, fetchProduct]);
 
   // Manually add a product by entering barcode
   const handleManualAdd = () => {
@@ -121,7 +127,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         </button>
       </div>
 
-      {/* Camera View - Centered */}
+      {/* Camera View */}
       <div
         style={{
           display: "flex",
