@@ -12,8 +12,8 @@ const BestSellers = ({ onAddToCart }) => {
       try {
         const route =
           period === "30"
-            ? "http://localhost:3005/api/ai/best-sellers-30"
-            : "http://localhost:3005/api/ai/best-sellers";
+            ? "https://smart-inventory-software.onrender.com/api/ai/best-sellers-30"
+            : "https://smart-inventory-software.onrender.com/api/ai/best-sellers";
 
         const res = await fetch(route);
         const data = await res.json();

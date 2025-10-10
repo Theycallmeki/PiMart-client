@@ -12,7 +12,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     async (barcode) => {
       try {
         const res = await fetch(
-          `http://localhost:3005/api/items/barcode/${barcode}`
+          `https://smart-inventory-software.onrender.com/api/items/barcode/${barcode}`
         );
         if (!res.ok) throw new Error("Item not found");
         const data = await res.json();

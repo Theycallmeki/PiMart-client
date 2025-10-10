@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function Checkout({ cart }) {
-  const BACKEND_URL = "http://localhost:3005/api/sales-history";
+  const BACKEND_URL = "https://smart-inventory-software.onrender.com/api/sales-history";
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [cashCode, setCashCode] = useState("");
 
