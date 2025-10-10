@@ -41,8 +41,8 @@ const Header = () => {
       <style>{`
         .header {
           background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          color: white;
+          border: 1px solid rgba(0, 0, 0, 0.15);
+          color: black; /* changed from white */
           padding: 8px 16px;
           border-radius: 16px;
           margin: 12px auto;
@@ -62,7 +62,7 @@ const Header = () => {
           right: -10%;
           width: 250px;
           height: 250px;
-          background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(0,0,0,0.05) 0%, transparent 70%);
           border-radius: 50%;
           pointer-events: none;
         }
@@ -72,10 +72,11 @@ const Header = () => {
           margin: 0 0 4px 0;
           font-weight: 900;
           letter-spacing: -1px;
-          background: linear-gradient(90deg, #00d2ff, #3a7bd5, #ff6ec7);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          text-shadow: 1px 1px 6px rgba(0,0,0,0.3);
+          background: none; /* remove gradient */
+          color: black; /* changed to black */
+          -webkit-background-clip: unset;
+          -webkit-text-fill-color: unset;
+          text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
         }
 
         .subtitle {
@@ -84,6 +85,7 @@ const Header = () => {
           opacity: 0.9;
           font-weight: 400;
           letter-spacing: 0.5px;
+          color: black; /* changed to black */
         }
 
         .nav-links {
@@ -96,7 +98,7 @@ const Header = () => {
         }
 
         .nav-link {
-          color: white;
+          color: black; /* changed to black */
           text-decoration: none;
           font-weight: 600;
           font-size: 0.95rem;
@@ -110,7 +112,7 @@ const Header = () => {
           display: none;
           background: transparent;
           border: none;
-          color: white;
+          color: black; /* changed to black */
           font-size: 1.8rem;
           cursor: pointer;
           margin-bottom: 8px;

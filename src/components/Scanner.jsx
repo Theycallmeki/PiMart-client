@@ -6,7 +6,6 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [controls, setControls] = useState(null);
 
   // Fetch product details from backend
   const fetchProduct = useCallback(
@@ -44,23 +43,32 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   // Initialize barcode scanner
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader();
+    let controlsInstance;
 
-    if (isScanning) {
-      const c = codeReader.decodeFromVideoDevice(
-        null,
-        videoRef.current,
-        (result) => {
-          if (result) fetchProduct(result.getText());
-        }
-      );
-      setControls(c);
-    } else if (controls && typeof controls.stop === "function") {
-      controls.stop();
-    }
+    const startScanner = async () => {
+      try {
+        controlsInstance = await codeReader.decodeFromVideoDevice(
+          null,
+          videoRef.current,
+          (result) => {
+            if (result) fetchProduct(result.getText());
+          }
+        );
+      } catch (err) {
+        console.error("📸 Scanner error:", err.message);
+        alert("Cannot access camera. Please check permissions.");
+        setIsScanning(false);
+      }
+    };
 
-    return () =>
-      controls && typeof controls.stop === "function" && controls.stop();
-  }, [isScanning, controls, fetchProduct]);
+    if (isScanning) startScanner();
+
+    return () => {
+      if (controlsInstance && typeof controlsInstance.stop === "function") {
+        controlsInstance.stop();
+      }
+    };
+  }, [isScanning, fetchProduct]);
 
   // Manually add a product by entering barcode
   const handleManualAdd = () => {
