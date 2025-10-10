@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from "react";
 
-const BestSellers = ({ onAddToCart }) => {
+const BestSellers = () => {
   const [period, setPeriod] = useState("7");
   const [bestSellers, setBestSellers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState(""); // ✅ For the notification
 
   useEffect(() => {
     const fetchBestSellers = async () => {
@@ -27,28 +26,6 @@ const BestSellers = ({ onAddToCart }) => {
 
     fetchBestSellers();
   }, [period]);
-
-  // ✅ Function to handle adding to cart
-  const handleAdd = (item) => {
-    const product = {
-      barcode: item.barcode || item.id || item.item,
-      name: item.item,
-      price: item.price || 0,
-    };
-
-    if (typeof onAddToCart === "function") {
-      onAddToCart(product);
-      showNotification(`${item.item} added to cart 🛒`);
-    } else {
-      console.error("onAddToCart is not a function");
-    }
-  };
-
-  // ✅ Notification system
-  const showNotification = (message) => {
-    setNotification(message);
-    setTimeout(() => setNotification(""), 2500); // disappears after 2.5s
-  };
 
   return (
     <div className="best-container">
@@ -139,46 +116,7 @@ const BestSellers = ({ onAddToCart }) => {
           color: #555;
           margin-bottom: 12px;
         }
-
-        .add-btn {
-          background-color: #28a745;
-          color: white;
-          border: none;
-          padding: 10px 14px;
-          border-radius: 6px;
-          font-weight: bold;
-          cursor: pointer;
-          transition: background 0.2s ease;
-        }
-
-        .add-btn:hover {
-          background-color: #218838;
-        }
-
-        /* ✅ Notification Styles */
-        .notification {
-          position: fixed;
-          top: 80px;
-          right: 20px;
-          background: #28a745;
-          color: white;
-          padding: 12px 18px;
-          border-radius: 8px;
-          font-weight: bold;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-          animation: fadeInOut 2.5s ease forwards;
-          z-index: 1000;
-        }
-
-        @keyframes fadeInOut {
-          0% { opacity: 0; transform: translateY(-10px); }
-          10% { opacity: 1; transform: translateY(0); }
-          90% { opacity: 1; transform: translateY(0); }
-          100% { opacity: 0; transform: translateY(-10px); }
-        }
       `}</style>
-
-      {notification && <div className="notification">{notification}</div>}
 
       <h1 className="best-title">🔥 Best Sellers</h1>
       <p className="best-subtitle">
@@ -209,13 +147,9 @@ const BestSellers = ({ onAddToCart }) => {
               <div className="item-info">
                 <h2 className="item-name">{item.item}</h2>
                 <p className="item-qty">
-                  Estimated Sales:{" "}
-                  <strong>{item.predictedNext || item.quantity}</strong>
+                  Estimated Sales: <strong>{item.predictedNext || item.quantity}</strong>
                 </p>
               </div>
-              <button className="add-btn" onClick={() => handleAdd(item)}>
-                Add to Cart
-              </button>
             </div>
           ))}
         </div>
