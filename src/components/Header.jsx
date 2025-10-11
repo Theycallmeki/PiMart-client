@@ -5,9 +5,9 @@ const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const navLinks = [
-    { label: "🏠 Home", path: "/" },
-    { label: "📷 Scanner", path: "/scanner" },
-    { label: "⭐ Best Sellers", path: "/best" },
+    { label: "Cart", path: "/" },
+    { label: "Scanner", path: "/scanner" },
+    { label: "Best Sellers", path: "/best" },
   ];
 
   return (
