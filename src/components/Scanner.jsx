@@ -6,67 +6,54 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [controls, setControls] = useState(null);
+  const scannerRef = useRef(null);
 
-  useEffect(() => {
-    const codeReader = new BrowserMultiFormatReader();
-
-    if (isScanning) {
-      const c = codeReader.decodeFromVideoDevice(
-        null,
-        videoRef.current,
-        (result) => {
-          if (result) fetchProduct(result.getText());
+  // 🔹 Fetch product from backend
+  const fetchProduct = useCallback(
+    async (barcode) => {
+      try {
+        const res = await fetch(`http://localhost:5000/items/barcode/${barcode}`);
+        let product;
+        if (res.ok) {
+          const data = await res.json();
+          product = {
+            barcode: data.barcode,
+            name: data.name,
+            category: data.category,
+            price: parseFloat(data.price),
+          };
+        } else {
+          product = {
+            barcode: barcode,
+            name: "Unknown Product",
+            category: "N/A",
+            price: 0,
+          };
         }
-      );
-      setControls(c);
-    } else if (controls && typeof controls.stop === "function") {
-      controls.stop();
-    }
 
-    return () => controls && typeof controls.stop === "function" && controls.stop();
-  }, [isScanning]);
+        console.log("✅ Scanned product:", product);
 
-  // 🔹 Fetch product from backend instead of mock database
-  const fetchProduct = async (barcode) => {
-    try {
-      const res = await fetch(`http://localhost:5000/items/barcode/${barcode}`);
-      if (!res.ok) {
-        throw new Error("Item not found");
-      }
-      const data = await res.json();
-
-        const foundProduct = {
-          barcode: data.barcode,
-          name: data.name,
-          category: data.category,
-          price: parseFloat(data.price),
-        };
-
-        console.log("✅ Scanned product:", foundProduct);
-        onAddToCart(foundProduct);
+        // Prevent duplicate entries: increment quantity if already in cart
+        const existing = cart.find((item) => item.barcode === product.barcode);
+        if (existing) {
+          onQuantityChange(product.barcode, existing.quantity + 1);
+        } else {
+          onAddToCart({ ...product, quantity: 1 });
+        }
       } catch (err) {
-        console.error(err.message);
-        const unknownProduct = {
-          barcode: barcode,
-          name: "Unknown Product",
-          category: "N/A",
-          price: 0,
-        };
-        onAddToCart(unknownProduct);
+        console.error("Fetch error:", err.message);
       }
     },
-    [onAddToCart]
+    [cart, onAddToCart, onQuantityChange]
   );
 
-  // Initialize barcode scanner
+  // 🔹 Camera scanning effect
   useEffect(() => {
     const codeReader = new BrowserMultiFormatReader();
-    let controlsInstance;
 
     const startScanner = async () => {
       try {
-        controlsInstance = await codeReader.decodeFromVideoDevice(
+        scannerRef.current = await codeReader.decodeFromVideoDevice(
           null,
           videoRef.current,
           (result) => {
@@ -80,23 +67,29 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
       }
     };
 
-    if (isScanning) startScanner();
+    if (isScanning) {
+      startScanner();
+    } else if (scannerRef.current) {
+      scannerRef.current.stop();
+      scannerRef.current = null;
+    }
 
     return () => {
-      if (controlsInstance && typeof controlsInstance.stop === "function") {
-        controlsInstance.stop();
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current = null;
       }
     };
   }, [isScanning, fetchProduct]);
 
-  // Manually add a product by entering barcode
+  // 🔹 Manual barcode input
   const handleManualAdd = () => {
     if (!barcodeInput.trim()) return alert("Please enter a barcode!");
     fetchProduct(barcodeInput.trim());
     setBarcodeInput("");
   };
 
-  // Adjust quantity with +/− buttons
+  // 🔹 Quantity adjustment
   const adjustQuantity = (barcode, delta) => {
     const item = cart.find((i) => i.barcode === barcode);
     if (!item) return;
@@ -175,7 +168,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         />
       </div>
 
-      {/* Show Scanned Items */}
+      {/* Cart Items */}
       <div style={{ marginTop: "25px" }}>
         {cart.length === 0 ? (
           <p>No items scanned yet.</p>
