@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function Checkout({ cart }) {
-  const BACKEND_URL = "https://smart-inventory-software.onrender.com/api/sales-history";
+  const BACKEND_URL = "http://localhost:5000/payment"; // PayMongo backend
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [cashCode, setCashCode] = useState("");
 
@@ -15,22 +15,50 @@ function Checkout({ cart }) {
     if (cart.length === 0) return alert("Your cart is empty!");
 
     if (paymentMethod === "gcash") {
+      // 🟢 PayMongo GCash flow
       try {
-        const res = await fetch(`${BACKEND_URL}/create-checkout-session`, {
+        // Step 1: Create Payment Intent
+        const intentRes = await fetch(`${BACKEND_URL}/intent`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart }),
+          body: JSON.stringify({ amount: totalPrice * 100, currency: "PHP" }),
+        });
+        const intentData = await intentRes.json();
+        console.log("Frontend: /intent response:", intentData);
+
+        // 🔹 Update this check
+        if (!intentData.id) throw new Error("Failed to create payment intent");
+
+        const paymentIntentId = intentData.id;
+
+        // Step 2: Create Checkout Session
+        const checkoutRes = await fetch(`${BACKEND_URL}/checkout`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            payment_intent_id: paymentIntentId,
+            success_url: "http://localhost:3000/success",
+            cancel_url: "http://localhost:3000/cancel",
+            cart: cart
+          }),
         });
 
-        const data = await res.json();
-        if (data.checkoutUrl) window.location.href = data.checkoutUrl;
+        const checkoutData = await checkoutRes.json();
+        if (!checkoutData.checkoutUrl) {
+          console.error("PayMongo error:", checkoutData.error);
+          throw new Error("Failed to create checkout session");
+        }
+
+        // Redirect to hosted checkout
+        window.location.href = checkoutData.checkoutUrl;
       } catch (err) {
-        console.error("Error during checkout:", err);
-        alert("Something went wrong.");
+        console.error("Error during PayMongo checkout:", err);
+        alert("Something went wrong during GCash payment.");
       }
     } else if (paymentMethod === "cash") {
+      // 🟢 Keep your existing cash flow intact
       try {
-        const res = await fetch(`${BACKEND_URL}/save-cart`, {
+        const res = await fetch(`http://localhost:5000/sales/save-cart`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cart }),
@@ -48,7 +76,7 @@ function Checkout({ cart }) {
 
   const handleConfirmCash = async () => {
     try {
-      const res = await fetch(`${BACKEND_URL}/confirm-cash`, {
+      const res = await fetch(`http://localhost:5000/sales/confirm-cash`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: cashCode }),

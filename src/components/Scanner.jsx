@@ -6,16 +6,35 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [controls, setControls] = useState(null);
 
-  // Fetch product details from backend
-  const fetchProduct = useCallback(
-    async (barcode) => {
-      try {
-        const res = await fetch(
-          `https://smart-inventory-software.onrender.com/api/items/barcode/${barcode}`
-        );
-        if (!res.ok) throw new Error("Item not found");
-        const data = await res.json();
+  useEffect(() => {
+    const codeReader = new BrowserMultiFormatReader();
+
+    if (isScanning) {
+      const c = codeReader.decodeFromVideoDevice(
+        null,
+        videoRef.current,
+        (result) => {
+          if (result) fetchProduct(result.getText());
+        }
+      );
+      setControls(c);
+    } else if (controls && typeof controls.stop === "function") {
+      controls.stop();
+    }
+
+    return () => controls && typeof controls.stop === "function" && controls.stop();
+  }, [isScanning]);
+
+  // 🔹 Fetch product from backend instead of mock database
+  const fetchProduct = async (barcode) => {
+    try {
+      const res = await fetch(`http://localhost:5000/items/barcode/${barcode}`);
+      if (!res.ok) {
+        throw new Error("Item not found");
+      }
+      const data = await res.json();
 
         const foundProduct = {
           barcode: data.barcode,
