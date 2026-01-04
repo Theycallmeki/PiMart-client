@@ -56,43 +56,50 @@ function Checkout({ cart }) {
         alert("Something went wrong during GCash payment.");
       }
     } else if (paymentMethod === "cash") {
-      // 🟢 Keep your existing cash flow intact
       try {
-        const res = await fetch(`http://localhost:5000/sales/save-cart`, {
+        const res = await fetch(`${BACKEND_URL}/cash/start`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart }),
+          body: JSON.stringify({ cart })
         });
 
-        if (!res.ok) throw new Error("Failed to send cart.");
+        if (!res.ok) throw new Error("Failed to generate cash code.");
 
-        alert("Please ask the admin for your 6-digit cash code.");
+        const data = await res.json(); // <-- get the backend response
+        console.log("Generated cash code:", data.code);
+
+        // Optional: prefill input for testing
+        setCashCode(data.code);
+
+        alert(`Your 6-digit cash code is: ${data.code}`);
       } catch (err) {
         console.error(err);
-        alert("Failed to send cart to admin.");
+        alert("Failed to generate cash code.");
       }
     }
   };
 
   const handleConfirmCash = async () => {
     try {
-      const res = await fetch(`http://localhost:5000/sales/confirm-cash`, {
+      const res = await fetch("http://localhost:5000/payment/cash/confirm", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: cashCode }),
+        credentials: "include"
       });
+
       const data = await res.json();
-      if (res.ok) {
-        alert(data.message);
-        setCashCode("");
-      } else {
-        alert(data.error);
-      }
+
+      if (!res.ok) throw new Error(data.error || "Confirm failed");
+
+      alert(data.message);
+      setCashCode("");
     } catch (err) {
       console.error(err);
       alert("Error confirming cash payment.");
     }
   };
+
 
   return (
     <div className="container mt-5">
@@ -150,9 +157,14 @@ function Checkout({ cart }) {
           </div>
         )}
 
-        <button className="btn btn-primary w-100" onClick={handlePlaceOrder}>
-          {paymentMethod === "gcash" ? "Pay with GCash" : "Generate Cash Code"}
+        <button
+          className="btn btn-primary w-100"
+          onClick={handlePlaceOrder}
+          disabled={paymentMethod === "cash" && cashCode} // disable if code exists
+        >
+          {paymentMethod === "gcash" ? "Pay with GCash" : cashCode ? "Cash Code Generated" : "Generate Cash Code"}
         </button>
+
       </div>
     </div>
   );
