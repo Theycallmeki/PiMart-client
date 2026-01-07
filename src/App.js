@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Header from "./components/Header";
 import Scanner from "./components/Scanner";
 import Item from "./components/Item";
@@ -31,7 +32,19 @@ function Success() {
 }
 
 function App() {
-  const [cart, setCart] = React.useState([]);
+  const [cart, setCart] = React.useState(() => {
+    try {
+      const stored = localStorage.getItem("cart");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
+
 
   // ✅ Add or update item when scanned
   const handleAddToCart = (product) => {
@@ -78,48 +91,78 @@ function App() {
         <div className="wave"></div>
       </div>
 
-   <Header />
+
       <Routes>
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        
-        {/* ✅ Scanner Page */}
-        <Route
-          path="/scanner"
-          element={
-            <Scanner
-              cart={cart}
-              onAddToCart={handleAddToCart}
-              onQuantityChange={handleQuantityChange}
-              onDeleteItem={handleDeleteItem}
-            />
-          }
-        />
-
-        {/* ✅ Cart / Item Page */}
         <Route
           path="/"
           element={
-            <Item
-              cart={cart}
-              onQuantityChange={handleQuantityChange}
-              onDeleteItem={handleDeleteItem}
-            />
+            <ProtectedRoute>
+              <>
+                <Header />
+                <Item
+                  cart={cart}
+                  onQuantityChange={handleQuantityChange}
+                  onDeleteItem={handleDeleteItem}
+                />
+              </>
+            </ProtectedRoute>
           }
         />
 
-        {/* ✅ Checkout Page */}
-        <Route path="/checkout" element={<Checkout cart={cart} />} />
+        <Route
+          path="/scanner"
+          element={
+            <ProtectedRoute>
+              <>
+                <Header />
+                <Scanner
+                  cart={cart}
+                  onAddToCart={handleAddToCart}
+                  onQuantityChange={handleQuantityChange}
+                  onDeleteItem={handleDeleteItem}
+                />
+              </>
+            </ProtectedRoute>
+          }
+        />
 
-        {/* ✅ Success Page */}
-        <Route path="/success" element={<Success />} />
+        <Route
+          path="/checkout"
+          element={
+            <ProtectedRoute>
+              <>
+                <Header />
+                <Checkout cart={cart} />
+              </>
+            </ProtectedRoute>
+          }
+        />
 
-        {/* ✅ AI Best Seller Predictor Page */}
         <Route
           path="/best"
-          element={<BestSellers onAddToCart={handleAddToCart} />}
+          element={
+            <ProtectedRoute>
+              <>
+                <Header />
+                <BestSellers onAddToCart={handleAddToCart} />
+              </>
+            </ProtectedRoute>
+          }
         />
+
+        <Route
+          path="/success"
+          element={
+            <ProtectedRoute>
+              <Success />
+            </ProtectedRoute>
+          }
+        />
+
+
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
       </Routes>
     </Router>
