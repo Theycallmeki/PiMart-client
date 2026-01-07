@@ -5,6 +5,8 @@ import Scanner from "./components/Scanner";
 import Item from "./components/Item";
 import Checkout from "./components/Checkout";
 import BestSellers from "./components/BestSellers"; // ✅ Import Best Sellers Component
+import Login from "./screens/auth/Login";
+import Register from "./screens/auth/Register";
 import "./App.css"; // ✅ Import the global background CSS
 
 function Success() {
@@ -76,8 +78,12 @@ function App() {
         <div className="wave"></div>
       </div>
 
-      <Header />
+   <Header />
       <Routes>
+
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        
         {/* ✅ Scanner Page */}
         <Route
           path="/scanner"
@@ -114,6 +120,7 @@ function App() {
           path="/best"
           element={<BestSellers onAddToCart={handleAddToCart} />}
         />
+
       </Routes>
     </Router>
   );

@@ -1,8 +1,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import useAuth from "../hooks/auth/useAuth";
 
 const Header = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const { logout } = useAuth();
 
   const navLinks = [
     { label: "Cart", path: "/" },
@@ -34,6 +37,10 @@ const Header = () => {
               {link.label}
             </Link>
           ))}
+          <button onClick={logout} className="nav-link">
+            Logout
+          </button>
+
         </nav>
       </div>
 
