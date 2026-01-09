@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCamera } from "@fortawesome/free-solid-svg-icons";
+import { faCartShopping } from "@fortawesome/free-solid-svg-icons";
+import { faPaperclip } from "@fortawesome/free-solid-svg-icons";
+
+
 
 
 
@@ -187,18 +193,35 @@ useEffect(() => {
   }}
 >
   <PrimaryButton
-    onClick={() => navigate("/items")}
-    style={{
-      background: "#113F67",
-      fontSize: "14px",
-      padding: "8px 14px",
-    }}
-  >
-    🛒 Go to Cart
-  </PrimaryButton>
+  onClick={() => navigate("/items")}
+  style={{
+    background: "#113F67",
+    fontSize: "14px",
+    padding: "8px 14px",
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+  }}
+>
+  <FontAwesomeIcon icon={faCartShopping} />
+  Go to Cart
+</PrimaryButton>
+
 </div>
 
-      <h2 style={{ color: "#113F67", fontWeight: 700 }}>📷 Barcode Scanner</h2>
+      <h2
+  style={{
+    color: "#113F67",
+    fontWeight: 700,
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  }}
+>
+  <FontAwesomeIcon icon={faCamera} />
+  Barcode Scanner
+</h2>
+
 
   {/* MAIN TWO-COLUMN LAYOUT */}
 <div
@@ -255,9 +278,19 @@ useEffect(() => {
 
   <div style={{ flex: 1 }}>
     <Section>
-      <h3 style={{ color: "#113F67", marginBottom: "16px" }}>
-        🧾 Scanned Items
-      </h3>
+      <h3
+  style={{
+    color: "#113F67",
+    marginBottom: "16px",
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  }}
+>
+  <FontAwesomeIcon icon={faPaperclip} />
+  Scanned Items
+</h3>
+
 
       {cart.length === 0 ? (
         <p>No items scanned yet.</p>

@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import useAuth from "../hooks/auth/useAuth";
 import { FaShoppingCart } from "react-icons/fa";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowRightFromBracket } from "@fortawesome/free-solid-svg-icons";
+
+
 
 
 const Header = () => {
@@ -29,12 +33,10 @@ return (
       <h1 className="logo"> <FaShoppingCart className="logo-icon" />PiMart</h1>
 
 
-      <button
-        onClick={logout}
-        className="logout-btn"
-      >
-        Logout
-      </button>
+<button onClick={logout} className="logout-btn"> <FontAwesomeIcon icon={faArrowRightFromBracket} className="logout-icon" />
+</button>
+
+
 
       {/* Hamburger Menu */}
       <nav className={`nav-links ${menuOpen ? "open" : ""}`}>

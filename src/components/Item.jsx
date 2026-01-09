@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CiShoppingCart } from "react-icons/ci";
 
 
+
 const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
   const navigate = useNavigate();
 
@@ -13,10 +14,36 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
 
   return (
     <div style={{ textAlign: "center", marginTop: "20px", padding: "0 10px" }}>
+      {/* Top-right navigation */}
+<div
+  style={{
+    display: "flex",
+    justifyContent: "flex-start",
+    marginBottom: "10px",
+  }}
+>
+  <button
+    onClick={() => navigate("/scanner")}
+    style={{
+      background: "#113F67",
+      color: "#FFFFFF",
+      border: "none",
+      borderRadius: "8px",
+      padding: "8px 14px",
+      fontSize: "14px",
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "'Poppins', sans-serif",
+    }}
+  >
+    ← Back to Scanner
+  </button>
+</div>
+
       <h2 style={{ fontSize: "20px", color: "white", fontFamily: "'Poppins', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",}} ><CiShoppingCart />Shopping Cart</h2>
 
       {cart.length === 0 ? (
-        <p>No items in your cart yet.</p>
+        <p style={{color:"white", fontFamily: "'Poppins', sans-serif", }}>No items in your cart yet.</p>
       ) : (
         <>
           <div className="cart-table">
@@ -34,12 +61,12 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
             >
               <thead style={{ background: "#F1F5F9" }}>
                 <tr>
-                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Item</th>
-                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Category</th>
-                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Price</th>
-                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Quantity</th>
-                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Total</th>
-                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem",}}>Action</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "20px", }}>Item</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "20px", }}>Category</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "20px", }}>Price</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "20px", }}>Quantity</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "20px", }}>Total</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "20px",}}>Action</th>
                 </tr>
               </thead>
               <tbody>
