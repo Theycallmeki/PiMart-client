@@ -1,21 +1,40 @@
 .auth-container {
+  position: relative;
   min-height: 100vh;
+  background-color: #113F67;
   display: flex;
   justify-content: center;
   align-items: center;
 }
+
+.auth-brand {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 30px;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 1px;
+  font-family: "'Poppins', sans-serif";
+}
+
 
 .auth-card {
   width: 320px;
   padding: 24px;
   border: 1px solid #ddd;
   border-radius: 8px;
-  background: white;
+  background: #F1F5F9;
+
+;
 }
 
 .auth-card h2 {
   margin-bottom: 16px;
   text-align: center;
+  font-family: "'Poppins', sans-serif";
+  font-weight: bold;
 }
 
 .auth-card input {
@@ -24,21 +43,50 @@
   margin-bottom: 12px;
   border: 1px solid #ccc;
   border-radius: 6px;
+  font-family: "'Poppins', sans-serif";
 }
 
 .auth-card button {
   width: 100%;
   padding: 10px;
   border: none;
-  background: black;
+  background: #113F67;
   color: white;
   border-radius: 6px;
   cursor: pointer;
+  font-family: "'Poppins', sans-serif";
+  font-weight: bold;
 }
 
 .auth-card button:hover {
   opacity: 0.85;
 }
+
+
+.auth-card p {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  color: #374151; 
+  text-align: center;
+  font-family: "'Poppins', sans-serif";
+}
+
+
+.auth-card p a {
+  color: #113F67;      
+  font-weight: 600;
+  text-decoration: none;
+  font-family: "'Poppins', sans-serif";
+  font-weight: bold;
+}
+
+
+.auth-card p a:hover {
+  color: #0D3558;      
+  text-decoration: underline;
+}
+
+
 
 .error {
   color: red;

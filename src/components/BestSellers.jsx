@@ -29,94 +29,118 @@ const BestSellers = () => {
 
   return (
     <div className="best-container">
-      <style>{`
-        .best-container {
-          max-width: 1000px;
-          margin: 120px auto;
-          text-align: center;
-          padding: 30px;
-          background: #f9f9fb;
-          border-radius: 16px;
-        }
+     <style>{`
+.best-container {
+  width: calc(100% - 80px);        /* horizontal margin */
+  min-height: calc(100vh - 160px); /* still tall, but less push down */
+  margin: 80px auto 40px auto;     /* MOVE UP */
+  text-align: center;
+  padding: 48px 48px;
+  background: #EBEBEB;
+  border-radius: 20px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+  font-family: 'Poppins', sans-serif;
+}
 
-        .best-title {
-          font-size: 2rem;
-          color: #007bff;
-          font-weight: bold;
-          margin-bottom: 10px;
-        }
 
-        .best-subtitle {
-          color: #555;
-          margin-bottom: 25px;
-          font-size: 1rem;
-        }
 
-        .best-controls {
-          margin-bottom: 20px;
-        }
+  .best-title {
+    font-size: 2.1rem;
+    color: #113F67;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
 
-        .best-controls select {
-          margin-left: 10px;
-          padding: 8px 12px;
-          border-radius: 6px;
-          border: 1px solid #ccc;
-          font-size: 1rem;
-        }
+  .best-subtitle {
+    color: #6B7280;
+    margin-bottom: 28px;
+    font-size: 0.95rem;
+  }
 
-        .loading,
-        .no-data {
-          color: #555;
-          font-style: italic;
-        }
+  .best-controls {
+    margin-bottom: 24px;
+    color: #374151;
+    font-weight: 500;
+  }
 
-        .best-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 20px;
-          margin-top: 30px;
-        }
+  .best-controls select {
+    margin-left: 10px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #CBD5E1;
+    font-size: 0.9rem;
+    font-family: 'Poppins', sans-serif;
+    color: #113F67;
+    background: #ffffff;
+    cursor: pointer;
+  }
 
-        .best-card {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-          padding: 20px;
-          position: relative;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
+  .loading,
+  .no-data {
+    color: #6B7280;
+    font-style: italic;
+    margin-top: 20px;
+  }
 
-        .best-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-        }
+  .best-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    margin-top: 32px;
+  }
 
-        .rank-badge {
-          position: absolute;
-          top: -10px;
-          left: -10px;
-          background: #007bff;
-          color: white;
-          font-weight: bold;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+  .best-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #E5E7EB;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    padding: 24px 20px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
 
-        .item-name {
-          font-size: 1.2rem;
-          margin-bottom: 8px;
-          color: #333;
-        }
+  .best-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  }
 
-        .item-qty {
-          color: #555;
-          margin-bottom: 12px;
-        }
-      `}</style>
+  .rank-badge {
+    position: absolute;
+    top: -14px;
+    left: -14px;
+    background: #113F67;
+    color: #ffffff;
+    font-weight: 700;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  .item-name {
+    font-size: 1.1rem;
+    margin-bottom: 6px;
+    color: #113F67;
+    font-weight: 600;
+  }
+
+  .item-qty {
+    color: #374151;
+    font-size: 0.9rem;
+  }
+    @media (max-width: 768px) {
+  .best-container {
+    width: calc(100% - 32px);
+    margin: 96px auto 24px auto;
+    padding: 32px 20px;
+    border-radius: 16px;
+  }
+}
+`}</style>
+
 
       <h1 className="best-title">🔥 Best Sellers</h1>
       <p className="best-subtitle">

@@ -9,6 +9,7 @@ import BestSellers from "./components/BestSellers"; // ✅ Import Best Sellers C
 import Login from "./screens/auth/Login";
 import Register from "./screens/auth/Register";
 import "./App.css"; // ✅ Import the global background CSS
+import Home from "./components/Home";
 
 function Success() {
   React.useEffect(() => {
@@ -92,79 +93,88 @@ function App() {
       </div>
 
 
-      <Routes>
+  <Routes>
 
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <>
-                <Header />
-                <Item
-                  cart={cart}
-                  onQuantityChange={handleQuantityChange}
-                  onDeleteItem={handleDeleteItem}
-                />
-              </>
-            </ProtectedRoute>
-          }
-        />
+  {/* 🏠 HOME (PUBLIC) */}
+  <Route path="/" element={<Home />} />
 
-        <Route
-          path="/scanner"
-          element={
-            <ProtectedRoute>
-              <>
-                <Header />
-                <Scanner
-                  cart={cart}
-                  onAddToCart={handleAddToCart}
-                  onQuantityChange={handleQuantityChange}
-                  onDeleteItem={handleDeleteItem}
-                />
-              </>
-            </ProtectedRoute>
-          }
-        />
+  {/* 🔐 ITEMS */}
+  <Route
+    path="/items"
+    element={
+      <ProtectedRoute>
+        <>
+          <Header />
+          <Item
+            cart={cart}
+            onQuantityChange={handleQuantityChange}
+            onDeleteItem={handleDeleteItem}
+          />
+        </>
+      </ProtectedRoute>
+    }
+  />
 
-        <Route
-          path="/checkout"
-          element={
-            <ProtectedRoute>
-              <>
-                <Header />
-                <Checkout cart={cart} />
-              </>
-            </ProtectedRoute>
-          }
-        />
+  {/* 🔐 SCANNER */}
+  <Route
+    path="/scanner"
+    element={
+      <ProtectedRoute>
+        <>
+          <Header />
+          <Scanner
+            cart={cart}
+            onAddToCart={handleAddToCart}
+            onQuantityChange={handleQuantityChange}
+            onDeleteItem={handleDeleteItem}
+          />
+        </>
+      </ProtectedRoute>
+    }
+  />
 
-        <Route
-          path="/best"
-          element={
-            <ProtectedRoute>
-              <>
-                <Header />
-                <BestSellers onAddToCart={handleAddToCart} />
-              </>
-            </ProtectedRoute>
-          }
-        />
+  {/* 🔐 CHECKOUT */}
+  <Route
+    path="/checkout"
+    element={
+      <ProtectedRoute>
+        <>
+          <Header />
+          <Checkout cart={cart} />
+        </>
+      </ProtectedRoute>
+    }
+  />
 
-        <Route
-          path="/success"
-          element={
-            <ProtectedRoute>
-              <Success />
-            </ProtectedRoute>
-          }
-        />
+  {/* 🔐 BEST SELLERS */}
+  <Route
+    path="/best"
+    element={
+      <ProtectedRoute>
+        <>
+          <Header />
+          <BestSellers onAddToCart={handleAddToCart} />
+        </>
+      </ProtectedRoute>
+    }
+  />
 
+  {/* 🔐 SUCCESS */}
+  <Route
+    path="/success"
+    element={
+      <ProtectedRoute>
+        <Success />
+      </ProtectedRoute>
+    }
+  />
 
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+  {/* 🔓 AUTH */}
+  <Route path="/login" element={<Login />} />
+  <Route path="/register" element={<Register />} />
 
-      </Routes>
+</Routes>
+
     </Router>
   );
 }
