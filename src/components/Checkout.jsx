@@ -1,133 +1,167 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
 
-
-function Checkout({ cart }) {
-  const BACKEND_URL = "http://localhost:5000/payment"; // PayMongo backend
+function Checkout({ cart, setCart }) {
+  const BACKEND_URL = "http://localhost:5000/payment";
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [cashCode, setCashCode] = useState("");
-
-   const navigate = useNavigate();
+  const [pendingId, setPendingId] = useState(null);
+  const [codeTimer, setCodeTimer] = useState(0);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const navigate = useNavigate();
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
 
-  const handlePlaceOrder = async () => {
-    if (cart.length === 0) return alert("Your cart is empty!");
+  useEffect(() => {
+    if (codeTimer <= 0) return;
+    const interval = setInterval(() => setCodeTimer((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [codeTimer]);
 
-    if (paymentMethod === "gcash") {
-      // 🟢 PayMongo GCash flow
-      try {
-        // Step 1: Create Payment Intent
+  const handlePlaceOrder = async () => {
+    if (isPlacingOrder) return;
+    setIsPlacingOrder(true);
+
+    if (cart.length === 0) {
+      alert("Your cart is empty!");
+      setIsPlacingOrder(false);
+      return;
+    }
+
+    try {
+      if (paymentMethod === "gcash") {
+        // --- GCash flow ---
         const intentRes = await fetch(`${BACKEND_URL}/intent`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ amount: totalPrice * 100, currency: "PHP" }),
         });
         const intentData = await intentRes.json();
-        console.log("Frontend: /intent response:", intentData);
-
-        // 🔹 Update this check
         if (!intentData.id) throw new Error("Failed to create payment intent");
 
-        const paymentIntentId = intentData.id;
-
-        // Step 2: Create Checkout Session
         const checkoutRes = await fetch(`${BACKEND_URL}/checkout`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            payment_intent_id: paymentIntentId,
+            payment_intent_id: intentData.id,
             success_url: "http://localhost:3000/success",
             cancel_url: "http://localhost:3000/cancel",
-            cart: cart
+            cart,
           }),
         });
-
         const checkoutData = await checkoutRes.json();
-        if (!checkoutData.checkoutUrl) {
-          console.error("PayMongo error:", checkoutData.error);
+        if (!checkoutData.checkoutUrl)
           throw new Error("Failed to create checkout session");
-        }
 
-        // Redirect to hosted checkout
         window.location.href = checkoutData.checkoutUrl;
-      } catch (err) {
-        console.error("Error during PayMongo checkout:", err);
-        alert("Something went wrong during GCash payment.");
-      }
-    } else if (paymentMethod === "cash") {
-      try {
+
+      } else if (paymentMethod === "cash") {
+        // --- Cash flow ---
+        // Step 1: create pending payment
         const res = await fetch(`${BACKEND_URL}/cash/start`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ cart })
+          credentials: "include",
+          body: JSON.stringify({ cart }),
         });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Cash request failed");
 
-        if (!res.ok) throw new Error("Failed to generate cash code.");
+        setPendingId(data.pending_id);
 
-        const data = await res.json(); // <-- get the backend response
-        console.log("Generated cash code:", data.code);
+        // Step 2: immediately request code for customer
+        const codeRes = await fetch(
+          `${BACKEND_URL}/cash/request-code/${data.pending_id}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+          }
+        );
+        const codeData = await codeRes.json();
+        if (!codeRes.ok) throw new Error(codeData.error || "Failed to generate cash code");
 
-        // Optional: prefill input for testing
-        setCashCode(data.code);
-
-        alert(`Your 6-digit cash code is: ${data.code}`);
-      } catch (err) {
-        console.error(err);
-        alert("Failed to generate cash code.");
+        setCashCode(codeData.code);
+        setCodeTimer(30); // start 30s countdown
+        alert(`Cash request initiated. Your code: ${codeData.code}`);
       }
+    } catch (err) {
+      console.error(err);
+      alert("Failed to place order: " + err.message);
+    } finally {
+      setIsPlacingOrder(false);
     }
   };
 
   const handleConfirmCash = async () => {
+    if (!cashCode) return alert("Enter your 6-digit cash code.");
+
     try {
-      const res = await fetch("http://localhost:5000/payment/cash/confirm", {
+      const res = await fetch(`${BACKEND_URL}/cash/confirm`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: cashCode }),
-        credentials: "include"
+        credentials: "include",
       });
-
       const data = await res.json();
-
       if (!res.ok) throw new Error(data.error || "Confirm failed");
 
       alert(data.message);
-      setCashCode("");
+      setCart([]);
+      localStorage.removeItem("cart");
+      navigate("/success");
     } catch (err) {
       console.error(err);
       alert("Error confirming cash payment.");
     }
   };
 
+  const handleRequestNewCode = async () => {
+    if (!pendingId) return alert("No pending cash request.");
+
+    try {
+      const res = await fetch(`${BACKEND_URL}/cash/request-code/${pendingId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to request new code");
+
+      setCashCode(data.code);
+      setCodeTimer(30); // restart timer
+      alert("New cash code requested.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to request new cash code.");
+    }
+  };
 
   return (
     <div className="container mt-5">
       <div className="card shadow-sm p-4">
-
         <button
-  onClick={() => navigate("/items")}
-  style={{
-    background: "transparent",
-    border: "none",
-    padding: "0",
-    marginBottom: "16px",
-    color: "#113F67",
-    fontWeight: 600,
-    fontSize: "14px",
-    cursor: "pointer",
-    fontFamily: "'Poppins', sans-serif",
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-  }}
->
-  ← Back to Cart
-</button>
+          onClick={() => navigate("/items")}
+          style={{
+            background: "transparent",
+            border: "none",
+            padding: 0,
+            marginBottom: 16,
+            color: "#113F67",
+            fontWeight: 600,
+            fontSize: 14,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          ← Back to Cart
+        </button>
 
         <h2 className="mb-4">Checkout</h2>
 
@@ -142,8 +176,8 @@ function Checkout({ cart }) {
                   key={item.barcode}
                   className="list-group-item d-flex justify-content-between"
                 >
-                  {item.name} (x{item.quantity})
-                  <span>₱{Number(item.price) * item.quantity}</span>
+                  {item.name} (x{item.quantity}){" "}
+                  <span>₱{item.price * item.quantity}</span>
                 </li>
               ))}
             </ul>
@@ -173,23 +207,31 @@ function Checkout({ cart }) {
               onChange={(e) => setCashCode(e.target.value)}
               maxLength={6}
             />
-            <button
-              className="btn btn-success mt-2 w-100"
-              onClick={handleConfirmCash}
-            >
-              Confirm Cash Payment
-            </button>
+            <div className="d-flex justify-content-between mt-2">
+              <button className="btn btn-success" onClick={handleConfirmCash}>
+                Confirm Cash Payment
+              </button>
+              <button className="btn btn-warning" onClick={handleRequestNewCode}>
+                Request New Code
+              </button>
+            </div>
+            {codeTimer > 0 && (
+              <p className="mt-2 text-muted">Code expires in: {codeTimer}s</p>
+            )}
           </div>
         )}
 
         <button
           className="btn btn-primary w-100"
           onClick={handlePlaceOrder}
-          disabled={paymentMethod === "cash" && cashCode} // disable if code exists
+          disabled={isPlacingOrder}
         >
-          {paymentMethod === "gcash" ? "Pay with GCash" : cashCode ? "Cash Code Generated" : "Generate Cash Code"}
+          {paymentMethod === "gcash"
+            ? "Pay with GCash"
+            : cashCode
+            ? "Cash Code Entered"
+            : "Request Cash Code"}
         </button>
-
       </div>
     </div>
   );

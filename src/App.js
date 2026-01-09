@@ -24,7 +24,7 @@ function Success() {
           Your payment has been processed. You will receive a confirmation from
           GCash shortly.
         </p>
-        <a href="/" className="btn btn-primary mt-3">
+        <a href="/items" className="btn btn-primary mt-3">
           Back to Home
         </a>
       </div>
@@ -140,7 +140,7 @@ function App() {
       <ProtectedRoute>
         <>
           <Header />
-          <Checkout cart={cart} />
+          <Checkout cart={cart} setCart={setCart} />
         </>
       </ProtectedRoute>
     }
