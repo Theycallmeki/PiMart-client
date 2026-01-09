@@ -10,7 +10,7 @@ body, #root {
   width: 100vw;
   overflow-x: hidden; /* hide horizontal scroll */
   overflow-y: auto;   /* allow vertical scrolling for mobile dropdown */
-  font-family: Arial, sans-serif;
+  font-family: "'Poppins', sans-serif";
   position: relative;
 }
 
@@ -24,7 +24,7 @@ body, #root {
   height: 100%;
   overflow: hidden;
   z-index: -1; /* behind everything */
-  background: linear-gradient(135deg, #1e3c72, #2a5298, #00d2ff, #3a7bd5);
+  background-color: #113F67;
   background-size: 400% 400%;
   animation: gradientShift 15s ease infinite;
 }

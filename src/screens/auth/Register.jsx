@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import useAuth from "../../hooks/auth/useAuth";
 import "./Auth.css";
+import { FaShoppingCart } from "react-icons/fa";
+
 
 export default function Register() {
   const [username, setUsername] = useState("");
@@ -17,6 +19,7 @@ export default function Register() {
 
   return (
     <div className="auth-container">
+      <div className="auth-brand"> <FaShoppingCart className="auth-brand-icon" /> PiMart</div>
       <form className="auth-card" onSubmit={handleSubmit}>
         <h2>Register</h2>
 

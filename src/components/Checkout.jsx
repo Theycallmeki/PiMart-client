@@ -1,10 +1,14 @@
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import { useNavigate } from "react-router-dom";
+
 
 function Checkout({ cart }) {
   const BACKEND_URL = "http://localhost:5000/payment"; // PayMongo backend
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [cashCode, setCashCode] = useState("");
+
+   const navigate = useNavigate();
 
   const totalPrice = cart.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
@@ -104,6 +108,27 @@ function Checkout({ cart }) {
   return (
     <div className="container mt-5">
       <div className="card shadow-sm p-4">
+
+        <button
+  onClick={() => navigate("/items")}
+  style={{
+    background: "transparent",
+    border: "none",
+    padding: "0",
+    marginBottom: "16px",
+    color: "#113F67",
+    fontWeight: 600,
+    fontSize: "14px",
+    cursor: "pointer",
+    fontFamily: "'Poppins', sans-serif",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+  }}
+>
+  ← Back to Cart
+</button>
+
         <h2 className="mb-4">Checkout</h2>
 
         <div className="mb-4">

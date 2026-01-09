@@ -1,19 +1,113 @@
-// Scanner.jsx
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
+import { useNavigate } from "react-router-dom";
+
+
+
+const PageWrapper = ({ children }) => (
+  <div
+    style={{
+      width: "calc(100% - 80px)",
+      margin: "80px auto 40px",
+      background: "white",
+      borderRadius: "20px",
+      padding: "40px",
+      boxShadow: "0 12px 30px rgba(0,0,0,0.15)",
+      fontFamily: "'Poppins', sans-serif",
+      marginTop: "30px",
+    }}
+  >
+    {children}
+
+    {/* ✅ RESPONSIVE STYLES */}
+    <style>{`
+      @media (max-width: 768px) {
+        .scanner-layout {
+          flex-direction: column;
+        }
+
+        .scanner-column {
+          width: 100%;
+        }
+
+        .scanner-input {
+          width: 100% !important;
+        }
+
+        .scanner-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .scanner-video {
+          max-height: 280px;
+          object-fit: cover;
+        }
+
+        .cart-button {
+          width: 100%;
+          justify-content: center;
+        }
+      }
+    `}</style>
+  </div>
+);
+
+
+
+const Section = ({ children }) => (
+  <div
+    style={{
+      marginTop: "24px",
+      padding: "24px",
+      borderRadius: "16px",
+      background: "#EBEBEB",
+      border: "1px solid #E5E7EB",
+      boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
+      marginBottom: "50px"
+    }}
+  >
+    {children}
+  </div>
+);
+
+
+const PrimaryButton = ({ children, onClick, style }) => (
+  <button
+    onClick={onClick}
+    style={{
+      background: "#113F67",
+      color: "#fff",
+      border: "none",
+      borderRadius: "8px",
+      padding: "10px 18px",
+      fontWeight: 600,
+      cursor: "pointer",
+      fontFamily: "'Poppins', sans-serif",
+      ...style,
+    }}
+  >
+    {children}
+  </button>
+);
+
 
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
+  const scannerRef = useRef(null);
+  const navigate = useNavigate();
+
+
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const scannerRef = useRef(null);
 
-  // 🔹 Fetch product from backend
   const fetchProduct = useCallback(
     async (barcode) => {
       try {
         const res = await fetch(`http://localhost:5000/items/barcode/${barcode}`);
         let product;
+
         if (res.ok) {
           const data = await res.json();
           product = {
@@ -24,233 +118,179 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
           };
         } else {
           product = {
-            barcode: barcode,
+            barcode,
             name: "Unknown Product",
             category: "N/A",
             price: 0,
           };
         }
 
-        console.log("✅ Scanned product:", product);
-
-        // Prevent duplicate entries: increment quantity if already in cart
-        const existing = cart.find((item) => item.barcode === product.barcode);
+        const existing = cart.find((i) => i.barcode === product.barcode);
         if (existing) {
           onQuantityChange(product.barcode, existing.quantity + 1);
         } else {
           onAddToCart({ ...product, quantity: 1 });
         }
       } catch (err) {
-        console.error("Fetch error:", err.message);
+        console.error(err);
       }
     },
     [cart, onAddToCart, onQuantityChange]
   );
 
-  // 🔹 Camera scanning effect
-  useEffect(() => {
-    const codeReader = new BrowserMultiFormatReader();
 
-    const startScanner = async () => {
-      try {
-        scannerRef.current = await codeReader.decodeFromVideoDevice(
-          null,
-          videoRef.current,
-          (result) => {
-            if (result) fetchProduct(result.getText());
+
+useEffect(() => {
+  const codeReader = new BrowserMultiFormatReader();
+
+  const startScanner = async () => {
+    try {
+      scannerRef.current = await codeReader.decodeFromVideoDevice(
+        null,
+        videoRef.current,
+        (result) => {
+          if (result) {
+            fetchProduct(result.getText());
           }
-        );
-      } catch (err) {
-        console.error("📸 Scanner error:", err.message);
-        alert("Cannot access camera. Please check permissions.");
-        setIsScanning(false);
-      }
-    };
+        }
+      );
+    } catch (err) {
+      console.error("📸 Scanner error:", err.message);
+      alert("Cannot access camera. Please check permissions.");
+      setIsScanning(false);
+    }
+  };
 
-    if (isScanning) {
-      startScanner();
-    } else if (scannerRef.current) {
-      scannerRef.current.stop();
+  if (isScanning) {
+    startScanner();
+  } else if (scannerRef.current) {
+    scannerRef.current.stop();   // ✅ FIX
+    scannerRef.current = null;
+  }
+
+  return () => {
+    if (scannerRef.current) {
+      scannerRef.current.stop(); // ✅ FIX
       scannerRef.current = null;
     }
-
-    return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop();
-        scannerRef.current = null;
-      }
-    };
-  }, [isScanning, fetchProduct]);
-
-  // 🔹 Manual barcode input
-  const handleManualAdd = () => {
-    if (!barcodeInput.trim()) return alert("Please enter a barcode!");
-    fetchProduct(barcodeInput.trim());
-    setBarcodeInput("");
   };
+}, [isScanning, fetchProduct]);
 
-  // 🔹 Quantity adjustment
-  const adjustQuantity = (barcode, delta) => {
-    const item = cart.find((i) => i.barcode === barcode);
-    if (!item) return;
-    const newQty = Math.max(1, item.quantity + delta);
-    onQuantityChange(barcode, newQty);
-  };
 
   return (
-    <div style={{ textAlign: "center", marginTop: "20px" }}>
-      <h2>📷 Barcode Scanner</h2>
+    <PageWrapper>
+      <div
+  style={{
+    display: "flex",
+    justifyContent: "flex-end",
+    marginBottom: "10px",
+  }}
+>
+  <PrimaryButton
+    onClick={() => navigate("/items")}
+    style={{
+      background: "#113F67",
+      fontSize: "14px",
+      padding: "8px 14px",
+    }}
+  >
+    🛒 Go to Cart
+  </PrimaryButton>
+</div>
 
-      {/* Toggle Camera */}
-      <button
+      <h2 style={{ color: "#113F67", fontWeight: 700 }}>📷 Barcode Scanner</h2>
+
+  {/* MAIN TWO-COLUMN LAYOUT */}
+<div
+  style={{
+    display: "flex",
+    gap: "24px",
+    marginTop: "30px",
+    alignItems: "flex-start",
+  }}
+>
+  {/* LEFT COLUMN – SCANNER */}
+  <div style={{ flex: 1 }}>
+    <Section>
+      <PrimaryButton
         onClick={() => setIsScanning(!isScanning)}
         style={{
-          padding: "10px 15px",
-          marginBottom: "15px",
-          borderRadius: "5px",
-          background: isScanning ? "red" : "green",
-          color: "white",
-          border: "none",
-          cursor: "pointer",
+          background: isScanning ? "#DC2626" : "#16A34A",
+          marginBottom: "16px",
         }}
       >
         {isScanning ? "Stop Camera" : "Start Camera"}
-      </button>
+      </PrimaryButton>
 
-      {/* Manual Barcode Input */}
-      <div style={{ marginTop: "10px" }}>
+      <div style={{ marginBottom: "16px" }}>
         <input
-          type="text"
-          placeholder="Enter barcode manually"
           value={barcodeInput}
           onChange={(e) => setBarcodeInput(e.target.value)}
+          placeholder="Enter barcode manually"
           style={{
-            padding: "8px",
-            width: "250px",
+            padding: "10px",
+            borderRadius: "8px",
+            border: "1px solid #CBD5E1",
+            width: "70%",
             marginRight: "10px",
-            borderRadius: "5px",
-            border: "1px solid #ccc",
           }}
         />
-        <button
-          onClick={handleManualAdd}
-          style={{
-            background: "blue",
-            color: "white",
-            border: "none",
-            padding: "8px 12px",
-            borderRadius: "5px",
-            cursor: "pointer",
-          }}
-        >
+        <PrimaryButton onClick={() => fetchProduct(barcodeInput)}>
           Add
-        </button>
+        </PrimaryButton>
       </div>
 
-      {/* Camera View */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          marginTop: "20px",
-        }}
-      >
+      {isScanning && (
         <video
           ref={videoRef}
           style={{
             width: "100%",
-            maxWidth: "400px",
-            border: "3px solid #333",
-            borderRadius: "10px",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-            display: isScanning ? "block" : "none",
+            borderRadius: "12px",
+            border: "3px solid #113F67",
           }}
         />
-      </div>
+      )}
+    </Section>
+  </div>
 
-      {/* Cart Items */}
-      <div style={{ marginTop: "25px" }}>
-        {cart.length === 0 ? (
-          <p>No items scanned yet.</p>
-        ) : (
-          cart.map((item) => (
-            <div
-              key={item.barcode}
+  <div style={{ flex: 1 }}>
+    <Section>
+      <h3 style={{ color: "#113F67", marginBottom: "16px" }}>
+        🧾 Scanned Items
+      </h3>
+
+      {cart.length === 0 ? (
+        <p>No items scanned yet.</p>
+      ) : (
+        cart.map((item) => (
+          <div
+            key={item.barcode}
+            style={{
+              borderBottom: "1px solid #E5E7EB",
+              padding: "12px 0",
+            }}
+          >
+            <strong>{item.name}</strong>
+            <p>₱{item.price.toFixed(2)}</p>
+            <p style={{ color: "#6B7280" }}>{item.category}</p>
+
+            <PrimaryButton
+              onClick={() => onDeleteItem(item.barcode)}
               style={{
-                border: "1px solid #ccc",
-                borderRadius: "10px",
-                padding: "15px",
-                margin: "15px auto",
-                width: "90%",
-                maxWidth: "400px",
+                background: "#9d0909ff",
+                marginTop: "8px",
               }}
             >
-              <h3>{item.name}</h3>
-              <p>₱{item.price.toFixed(2)}</p>
-              <p style={{ color: "#888" }}>{item.category}</p>
+              Remove
+            </PrimaryButton>
+          </div>
+        ))
+      )}
+    </Section>
+  </div>
+</div>
 
-              {/* Quantity Controls */}
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginTop: "10px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                  <button
-                    onClick={() => adjustQuantity(item.barcode, -1)}
-                    style={{
-                      background: "red",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      width: "30px",
-                      height: "30px",
-                      fontSize: "18px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    −
-                  </button>
-                  <span>{item.quantity}</span>
-                  <button
-                    onClick={() => adjustQuantity(item.barcode, 1)}
-                    style={{
-                      background: "green",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      width: "30px",
-                      height: "30px",
-                      fontSize: "18px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => onDeleteItem(item.barcode)}
-                  style={{
-                    background: "gray",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "5px",
-                    padding: "5px 10px",
-                    cursor: "pointer",
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
+    </PageWrapper>
   );
 };
 

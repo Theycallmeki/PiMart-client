@@ -1,5 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { CiShoppingCart } from "react-icons/ci";
+
 
 const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
   const navigate = useNavigate();
@@ -11,13 +13,12 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
 
   return (
     <div style={{ textAlign: "center", marginTop: "20px", padding: "0 10px" }}>
-      <h2>🛒 Shopping Cart</h2>
+      <h2 style={{ fontSize: "20px", color: "white", fontFamily: "'Poppins', sans-serif", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",}} ><CiShoppingCart />Shopping Cart</h2>
 
       {cart.length === 0 ? (
         <p>No items in your cart yet.</p>
       ) : (
         <>
-          {/* Table for larger screens */}
           <div className="cart-table">
             <table
               style={{
@@ -26,28 +27,30 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                 width: "100%",
                 tableLayout: "fixed",
                 boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
-                borderRadius: "10px",
+                borderRadius: "14px",
+                backgroundColor: "#FFFFFF",
+                fontFamily: "inherit",
               }}
             >
-              <thead style={{ background: "#f7f7f7" }}>
+              <thead style={{ background: "#F1F5F9" }}>
                 <tr>
-                  <th style={{ border: "1px solid #ccc", padding: "6px" }}>Item</th>
-                  <th style={{ border: "1px solid #ccc", padding: "6px" }}>Category</th>
-                  <th style={{ border: "1px solid #ccc", padding: "6px" }}>Price</th>
-                  <th style={{ border: "1px solid #ccc", padding: "6px" }}>Quantity</th>
-                  <th style={{ border: "1px solid #ccc", padding: "6px" }}>Total</th>
-                  <th style={{ border: "1px solid #ccc", padding: "6px" }}>Action</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Item</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Category</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Price</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Quantity</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem", }}>Total</th>
+                  <th style={{ border: "1px solid #CBD5E1", padding: "8px", color: "#113F67", fontWeight: 600, fontSize: "0.9rem",}}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {cart.map((item, index) => (
                   <tr key={index}>
-                    <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.name}</td>
-                    <td style={{ border: "1px solid #ccc", padding: "6px" }}>{item.category}</td>
-                    <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                    <td style={{ border: "1px solid #E5E7EB", padding: "8px", color: "#374151", fontSize: "0.9rem", }}>{item.name}</td>
+                    <td style={{ border: "1px solid #E5E7EB", padding: "8px", color: "#374151", fontSize: "0.9rem", }}>{item.category}</td>
+                    <td style={{ border: "1px solid #E5E7EB", padding: "8px", color: "#374151", fontSize: "0.9rem", }}>
                       ₱{item.price.toFixed(2)}
                     </td>
-                    <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                    <td style={{ border: "1px solid #E5E7EB", padding: "8px", color: "#374151", fontSize: "0.9rem", }}>
                       <div
                         style={{
                           display: "flex",
@@ -61,14 +64,15 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                             onQuantityChange(item.barcode, Math.max(1, item.quantity - 1))
                           }
                           style={{
-                            background: "red",
+                            background: "#113F67",
                             color: "white",
                             border: "none",
-                            borderRadius: "5px",
-                            width: "30px",
-                            height: "30px",
+                            borderRadius: "6px",
+                            width: "32px",
+                            height: "32px",
                             cursor: "pointer",
                             fontSize: "18px",
+                            fontWeight: 600,
                           }}
                         >
                           -
@@ -81,11 +85,13 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                             onQuantityChange(item.barcode, parseInt(e.target.value) || 1)
                           }
                           style={{
-                            width: "45px",
+                            width: "48px",
                             textAlign: "center",
-                            border: "1px solid #ccc",
-                            borderRadius: "5px",
+                            border: "1px solid #CBD5E1",
+                            borderRadius: "6px",
                             fontSize: "14px",
+                            fontWeight: 600,
+                            color: "#113F67",
                           }}
                         />
                         <button
@@ -107,20 +113,21 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                         </button>
                       </div>
                     </td>
-                    <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                    <td style={{ border: "1px solid #E5E7EB", padding: "8px", color: "#374151", fontSize: "0.9rem",}}>
                       ₱{(item.price * item.quantity).toFixed(2)}
                     </td>
-                    <td style={{ border: "1px solid #ccc", padding: "6px" }}>
+                    <td style={{ border: "1px solid #E5E7EB", padding: "8px", color: "#374151", fontSize: "0.9rem", }}>
                       <button
                         onClick={() => onDeleteItem(item.barcode)}
                         style={{
-                          background: "#6c757d",
-                          color: "white",
+                          background: "#6B7280",
+                          color: "#FFFFFF",
                           border: "none",
-                          borderRadius: "5px",
-                          padding: "4px 6px",
+                          borderRadius: "6px",
+                          padding: "6px 8px",
                           cursor: "pointer",
                           fontSize: "12px",
+                          fontWeight: 600,
                         }}
                       >
                         🗑 Remove
@@ -138,23 +145,24 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
               <div
                 key={index}
                 style={{
-                  border: "1px solid #ccc",
-                  borderRadius: "10px",
-                  padding: "10px",
-                  marginBottom: "15px",
-                  boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-                  textAlign: "left",
+                   border: "1px solid #CBD5E1",
+                    borderRadius: "14px",
+                    padding: "14px",
+                    marginBottom: "16px",
+                    boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+                    textAlign: "left",
+                    backgroundColor: "#FFFFFF",
+                    fontFamily: "'Poppins', sans-serif",
                 }}
               >
                 <h4>{item.name}</h4>
-                <p>Category: {item.category}</p>
-                <p>Price: ₱{item.price.toFixed(2)}</p>
+                <p style={{ color: "#374151", fontSize: "0.9rem" }}>Category: {item.category}</p>
+                <p style={{ color: "#374151", fontSize: "0.9rem" }}>Price: ₱{item.price.toFixed(2)}</p>
                 <div
                   style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "5px",
-                    marginBottom: "5px",
+                    color: "#113F67",
+                    fontWeight: 600,
+                    marginBottom: "4px",
                   }}
                 >
                   <button
@@ -162,15 +170,18 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                       onQuantityChange(item.barcode, Math.max(1, item.quantity - 1))
                     }
                     style={{
-                      background: "red",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      width: "30px",
-                      height: "30px",
-                      cursor: "pointer",
-                      fontSize: "18px",
+                    background: "#113F67",
+                    color: "#FFFFFF",
+                     border: "none",
+                    borderRadius: "6px",
+                    width: "32px",
+                    height: "32px",
+                    cursor: "pointer",
+                    fontSize: "18px",
+                    fontWeight: 600,
+                    fontFamily: "'Poppins', sans-serif",
                     }}
+
                   >
                     -
                   </button>
@@ -181,44 +192,52 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                     onChange={(e) =>
                       onQuantityChange(item.barcode, parseInt(e.target.value) || 1)
                     }
-                    style={{
-                      width: "45px",
-                      textAlign: "center",
-                      border: "1px solid #ccc",
-                      borderRadius: "5px",
-                      fontSize: "14px",
-                    }}
+                  style={{
+                  width: "48px",
+                  textAlign: "center",
+                  border: "1px solid #CBD5E1",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  color: "#113F67",
+                  fontFamily: "'Poppins', sans-serif",
+                  }}
+
                   />
                   <button
                     onClick={() =>
                       onQuantityChange(item.barcode, item.quantity + 1)
                     }
-                    style={{
-                      background: "green",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "5px",
-                      width: "30px",
-                      height: "30px",
-                      cursor: "pointer",
-                      fontSize: "18px",
+                   style={{
+                    background: "green",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "5px",
+                    width: "30px",
+                    height: "30px",
+                    cursor: "pointer",
+                    fontSize: "18px",
                     }}
+
                   >
                     +
                   </button>
                 </div>
-                <p>Total: ₱{(item.price * item.quantity).toFixed(2)}</p>
+                <p style={{ color: "#113F67", fontWeight: 600, fontSize: "0.95rem", fontFamily: "'Poppins', sans-serif", marginBottom: "8px", }}>Total: ₱{(item.price * item.quantity).toFixed(2)}</p>
                 <button
                   onClick={() => onDeleteItem(item.barcode)}
-                  style={{
-                    background: "#6c757d",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "5px",
-                    padding: "4px 6px",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                  }}
+                style={{
+                background: "#6B7280",
+                color: "#FFFFFF",
+                border: "none",
+                borderRadius: "6px",
+                padding: "6px 10px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: 600,
+                fontFamily: "'Poppins', sans-serif",
+                }}
+
                 >
                   🗑 Remove
                 </button>
@@ -226,7 +245,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
             ))}
           </div>
 
-          <h3 style={{ marginTop: "20px" }}>Grand Total: ₱{grandTotal.toFixed(2)}</h3>
+          <h3 style={{ marginTop: "24px", color: "#FFFFFF", fontFamily: "'Poppins', sans-serif", fontSize: "20px" }}>Grand Total: ₱{grandTotal.toFixed(2)}</h3>
 
           <button
             onClick={() => navigate("/checkout")}
@@ -234,7 +253,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
               marginTop: "15px",
               padding: "10px 20px",
               borderRadius: "6px",
-              background: "blue",
+              background: "#4ba5f3ff",
               color: "white",
               border: "none",
               cursor: "pointer",
