@@ -7,7 +7,7 @@ function Checkout({ cart, setCart }) {
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [cashCode, setCashCode] = useState("");
   const [pendingId, setPendingId] = useState(null);
-  const [codeTimer, setCodeTimer] = useState(0);
+  const [waitingForAdmin, setWaitingForAdmin] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const navigate = useNavigate();
 
@@ -16,14 +16,40 @@ function Checkout({ cart, setCart }) {
     0
   );
 
+  // -----------------------
+  // POLL FOR ADMIN-GENERATED CASH CODE
+  // -----------------------
   useEffect(() => {
-    if (codeTimer <= 0) return;
-    const interval = setInterval(() => setCodeTimer((t) => t - 1), 1000);
-    return () => clearInterval(interval);
-  }, [codeTimer]);
+    if (!pendingId) return;
 
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `${BACKEND_URL}/cash/status/${pendingId}`,
+          { credentials: "include" }
+        );
+        const data = await res.json();
+
+        if (data.code) {
+          setCashCode(data.code);
+          setWaitingForAdmin(false);
+          clearInterval(interval);
+          alert(`Your cash code is: ${data.code}`);
+        }
+      } catch (err) {
+        console.error("Failed to poll cash status", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [pendingId]);
+
+  // -----------------------
+  // PLACE ORDER
+  // -----------------------
   const handlePlaceOrder = async () => {
-    if (isPlacingOrder) return;
+    if (isPlacingOrder || pendingId) return;
+
     setIsPlacingOrder(true);
 
     if (cart.length === 0) {
@@ -60,34 +86,20 @@ function Checkout({ cart, setCart }) {
         window.location.href = checkoutData.checkoutUrl;
 
       } else if (paymentMethod === "cash") {
-        // --- Cash flow ---
-        // Step 1: create pending payment
+        // --- CASH FLOW (SECURE) ---
         const res = await fetch(`${BACKEND_URL}/cash/start`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({ cart }),
         });
+
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Cash request failed");
 
         setPendingId(data.pending_id);
-
-        // Step 2: immediately request code for customer
-        const codeRes = await fetch(
-          `${BACKEND_URL}/cash/request-code/${data.pending_id}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-          }
-        );
-        const codeData = await codeRes.json();
-        if (!codeRes.ok) throw new Error(codeData.error || "Failed to generate cash code");
-
-        setCashCode(codeData.code);
-        setCodeTimer(30); // start 30s countdown
-        alert(`Cash request initiated. Your code: ${codeData.code}`);
+        setWaitingForAdmin(true);
+        alert("Cash payment requested. Waiting for admin approval.");
       }
     } catch (err) {
       console.error(err);
@@ -97,8 +109,14 @@ function Checkout({ cart, setCart }) {
     }
   };
 
+  // -----------------------
+  // CONFIRM CASH PAYMENT
+  // -----------------------
   const handleConfirmCash = async () => {
-    if (!cashCode) return alert("Enter your 6-digit cash code.");
+    if (!cashCode || !pendingId) {
+      alert("Waiting for admin-generated cash code.");
+      return;
+    }
 
     try {
       const res = await fetch(`${BACKEND_URL}/cash/confirm`, {
@@ -107,6 +125,7 @@ function Checkout({ cart, setCart }) {
         body: JSON.stringify({ code: cashCode }),
         credentials: "include",
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Confirm failed");
 
@@ -117,27 +136,6 @@ function Checkout({ cart, setCart }) {
     } catch (err) {
       console.error(err);
       alert("Error confirming cash payment.");
-    }
-  };
-
-  const handleRequestNewCode = async () => {
-    if (!pendingId) return alert("No pending cash request.");
-
-    try {
-      const res = await fetch(`${BACKEND_URL}/cash/request-code/${pendingId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to request new code");
-
-      setCashCode(data.code);
-      setCodeTimer(30); // restart timer
-      alert("New cash code requested.");
-    } catch (err) {
-      console.error(err);
-      alert("Failed to request new cash code.");
     }
   };
 
@@ -155,9 +153,6 @@ function Checkout({ cart, setCart }) {
             fontWeight: 600,
             fontSize: 14,
             cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 6,
           }}
         >
           ← Back to Cart
@@ -176,7 +171,7 @@ function Checkout({ cart, setCart }) {
                   key={item.barcode}
                   className="list-group-item d-flex justify-content-between"
                 >
-                  {item.name} (x{item.quantity}){" "}
+                  {item.name} (x{item.quantity})
                   <span>₱{item.price * item.quantity}</span>
                 </li>
               ))}
@@ -199,24 +194,29 @@ function Checkout({ cart, setCart }) {
 
         {paymentMethod === "cash" && (
           <div className="mb-3">
-            <h5>Enter 6-digit cash code (provided by admin):</h5>
-            <input
-              type="text"
-              className="form-control"
-              value={cashCode}
-              onChange={(e) => setCashCode(e.target.value)}
-              maxLength={6}
-            />
-            <div className="d-flex justify-content-between mt-2">
-              <button className="btn btn-success" onClick={handleConfirmCash}>
-                Confirm Cash Payment
-              </button>
-              <button className="btn btn-warning" onClick={handleRequestNewCode}>
-                Request New Code
-              </button>
-            </div>
-            {codeTimer > 0 && (
-              <p className="mt-2 text-muted">Code expires in: {codeTimer}s</p>
+            {waitingForAdmin && (
+              <p className="text-warning">
+                Waiting for admin to generate your cash code…
+              </p>
+            )}
+
+            {cashCode && (
+              <>
+                <h5>Enter admin-provided cash code:</h5>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={cashCode}
+                  onChange={(e) => setCashCode(e.target.value)}
+                  maxLength={6}
+                />
+                <button
+                  className="btn btn-success mt-3 w-100"
+                  onClick={handleConfirmCash}
+                >
+                  Confirm Cash Payment
+                </button>
+              </>
             )}
           </div>
         )}
@@ -224,13 +224,15 @@ function Checkout({ cart, setCart }) {
         <button
           className="btn btn-primary w-100"
           onClick={handlePlaceOrder}
-          disabled={isPlacingOrder}
+          disabled={isPlacingOrder || waitingForAdmin || pendingId}
         >
           {paymentMethod === "gcash"
             ? "Pay with GCash"
-            : cashCode
-            ? "Cash Code Entered"
-            : "Request Cash Code"}
+            : pendingId
+            ? "Cash Payment Requested"
+            : waitingForAdmin
+            ? "Waiting for Admin Approval"
+            : "Request Cash Payment"}
         </button>
       </div>
     </div>
