@@ -54,7 +54,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                 boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
                 borderRadius: "14px",
                 backgroundColor: "#FFFFFF",
-                fontFamily: "inherit",
+                fontFamily: "Poppin, sans-serif",
               }}
             >
               <thead style={{ background: "#F1F5F9" }}>
@@ -282,6 +282,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
               border: "none",
               cursor: "pointer",
               fontSize: "16px",
+              fontFamily: "Poppin, sans-serif"
             }}
           >
             Proceed to Checkout
