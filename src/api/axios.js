@@ -1,8 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5000",
-  withCredentials: true, // REQUIRED for cookies
+  baseURL: "https://thesis-flask.onrender.com",
+  withCredentials: true, // keep this if you are using cookies/sessions
 });
 
 export default api;
