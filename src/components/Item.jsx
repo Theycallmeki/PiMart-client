@@ -2,8 +2,6 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { CiShoppingCart } from "react-icons/ci";
 
-
-
 const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
   const navigate = useNavigate();
 
