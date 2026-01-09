@@ -89,7 +89,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                             onQuantityChange(item.barcode, Math.max(1, item.quantity - 1))
                           }
                           style={{
-                            background: "#113F67",
+                            background: "#9d0909",
                             color: "white",
                             border: "none",
                             borderRadius: "6px",
@@ -145,7 +145,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                       <button
                         onClick={() => onDeleteItem(item.barcode)}
                         style={{
-                          background: "#6B7280",
+                          background: "#9d0909",
                           color: "#FFFFFF",
                           border: "none",
                           borderRadius: "6px",
@@ -195,7 +195,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                       onQuantityChange(item.barcode, Math.max(1, item.quantity - 1))
                     }
                     style={{
-                    background: "#113F67",
+                    background: "#9d0909",
                     color: "#FFFFFF",
                      border: "none",
                     borderRadius: "6px",
@@ -252,7 +252,7 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                 <button
                   onClick={() => onDeleteItem(item.barcode)}
                 style={{
-                background: "#6B7280",
+                background: "#9d0909",
                 color: "#FFFFFF",
                 border: "none",
                 borderRadius: "6px",
@@ -262,9 +262,8 @@ const Item = ({ cart, onQuantityChange, onDeleteItem }) => {
                 fontWeight: 600,
                 fontFamily: "'Poppins', sans-serif",
                 }}
-
                 >
-                  🗑 Remove
+                 Remove
                 </button>
               </div>
             ))}
