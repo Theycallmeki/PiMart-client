@@ -8,14 +8,14 @@ import {
   faPaperclip,
 } from "@fortawesome/free-solid-svg-icons";
 
+import api from "../api/axios"; // ✅ USE AXIOS INSTANCE
+
 /* =======================
    PAGE WRAPPER
 ======================= */
 const PageWrapper = ({ children }) => (
   <div className="page-wrapper">
     {children}
-
-    {/* 🔹 RESPONSIVE CSS */}
     <style>{`
       .page-wrapper {
         width: calc(100% - 80px);
@@ -26,66 +26,47 @@ const PageWrapper = ({ children }) => (
         box-shadow: 0 12px 30px rgba(0,0,0,0.15);
         font-family: 'Poppins', sans-serif;
       }
-
       .scanner-layout {
         display: flex;
         gap: 24px;
         margin-top: 30px;
         align-items: flex-start;
       }
-
       .scanner-column {
         flex: 1;
         width: 100%;
       }
-
       .scanner-actions {
         display: flex;
         gap: 10px;
         margin-bottom: 16px;
       }
-
       .scanner-input {
         flex: 1;
         padding: 10px;
         border-radius: 8px;
         border: 1px solid #CBD5E1;
       }
-
       .scanner-video {
         width: 100%;
         border-radius: 12px;
         border: 3px solid #113F67;
       }
-
-      /* 🔹 MOBILE FIX */
       @media (max-width: 768px) {
         .page-wrapper {
           width: calc(100% - 24px);
           padding: 20px;
           margin: 70px auto 20px;
         }
-
         .scanner-layout {
           flex-direction: column;
         }
-
-        .scanner-column {
-          width: 100%;
-        }
-
         .scanner-actions {
           flex-direction: column;
         }
-
         .scanner-video {
           max-height: 260px;
           object-fit: cover;
-        }
-
-        .cart-button {
-          width: 100%;
-          justify-content: center;
         }
       }
     `}</style>
@@ -124,7 +105,6 @@ const PrimaryButton = ({ children, onClick, style }) => (
       padding: "10px 18px",
       fontWeight: 600,
       cursor: "pointer",
-      fontFamily: "'Poppins', sans-serif",
       display: "flex",
       alignItems: "center",
       gap: "8px",
@@ -141,36 +121,27 @@ const PrimaryButton = ({ children, onClick, style }) => (
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
+  const lastScannedRef = useRef(null); // ✅ prevent duplicate scans
   const navigate = useNavigate();
 
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
 
-  /* 🔹 FETCH PRODUCT */
+  /* 🔹 FETCH PRODUCT (AXIOS) */
   const fetchProduct = useCallback(
     async (barcode) => {
-      try {
-        const res = await fetch(
-          `http://localhost:5000/items/barcode/${barcode}`
-        );
+      if (!barcode) return;
 
-        let product;
-        if (res.ok) {
-          const data = await res.json();
-          product = {
-            barcode: data.barcode,
-            name: data.name,
-            category: data.category,
-            price: parseFloat(data.price),
-          };
-        } else {
-          product = {
-            barcode,
-            name: "Unknown Product",
-            category: "N/A",
-            price: 0,
-          };
-        }
+      try {
+        const res = await api.get(`/items/barcode/${barcode}`);
+        const data = res.data;
+
+        const product = {
+          barcode: data.barcode,
+          name: data.name,
+          category: data.category,
+          price: parseFloat(data.price),
+        };
 
         const existing = cart.find((i) => i.barcode === product.barcode);
         if (existing) {
@@ -179,7 +150,17 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
           onAddToCart({ ...product, quantity: 1 });
         }
       } catch (err) {
-        console.error(err);
+        if (err.response?.status === 404) {
+          onAddToCart({
+            barcode,
+            name: "Unknown Product",
+            category: "N/A",
+            price: 0,
+            quantity: 1,
+          });
+        } else {
+          console.error("Barcode lookup failed:", err);
+        }
       }
     },
     [cart, onAddToCart, onQuantityChange]
@@ -195,7 +176,13 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
           null,
           videoRef.current,
           (result) => {
-            if (result) fetchProduct(result.getText());
+            if (!result) return;
+
+            const code = result.getText();
+            if (code !== lastScannedRef.current) {
+              lastScannedRef.current = code;
+              fetchProduct(code);
+            }
           }
         );
       } catch (err) {
@@ -220,35 +207,18 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
 
   return (
     <PageWrapper>
-      {/* 🔹 GO TO CART */}
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <PrimaryButton
-          className="cart-button"
-          onClick={() => navigate("/items")}
-        >
+        <PrimaryButton onClick={() => navigate("/items")}>
           <FontAwesomeIcon icon={faCartShopping} />
           Go to Cart
         </PrimaryButton>
       </div>
 
-      {/* 🔹 TITLE */}
-      <h2
-        style={{
-          color: "#113F67",
-          fontWeight: 700,
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          marginTop: "10px",
-        }}
-      >
-        <FontAwesomeIcon icon={faCamera} />
-        Barcode Scanner
+      <h2 style={{ color: "#113F67", fontWeight: 700 }}>
+        <FontAwesomeIcon icon={faCamera} /> Barcode Scanner
       </h2>
 
-      {/* 🔹 LAYOUT */}
       <div className="scanner-layout">
-        {/* LEFT */}
         <div className="scanner-column">
           <Section>
             <PrimaryButton
@@ -273,43 +243,24 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               </PrimaryButton>
             </div>
 
-            {isScanning && (
-              <video ref={videoRef} className="scanner-video" />
-            )}
+            {isScanning && <video ref={videoRef} className="scanner-video" />}
           </Section>
         </div>
 
-        {/* RIGHT */}
         <div className="scanner-column">
           <Section>
-            <h3
-              style={{
-                color: "#113F67",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                marginBottom: "16px",
-              }}
-            >
-              <FontAwesomeIcon icon={faPaperclip} />
-              Scanned Items
+            <h3 style={{ color: "#113F67" }}>
+              <FontAwesomeIcon icon={faPaperclip} /> Scanned Items
             </h3>
 
             {cart.length === 0 ? (
               <p>No items scanned yet.</p>
             ) : (
               cart.map((item) => (
-                <div
-                  key={item.barcode}
-                  style={{
-                    borderBottom: "1px solid #E5E7EB",
-                    padding: "12px 0",
-                  }}
-                >
+                <div key={item.barcode} style={{ padding: "12px 0" }}>
                   <strong>{item.name}</strong>
                   <p>₱{item.price.toFixed(2)}</p>
-                  <p style={{ color: "#6B7280" }}>{item.category}</p>
-
+                  <p>{item.category}</p>
                   <PrimaryButton
                     onClick={() => onDeleteItem(item.barcode)}
                     style={{ background: "#9d0909" }}
