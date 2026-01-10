@@ -121,19 +121,19 @@ const PrimaryButton = ({ children, onClick, style }) => (
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
   const scannerRef = useRef(null);
-  const lastScannedRef = useRef(null); // ✅ prevent duplicate scans
+  const lastScannedRef = useRef(null);
   const navigate = useNavigate();
 
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
 
-  /* 🔹 FETCH PRODUCT (AXIOS) */
+  /* 🔹 FETCH PRODUCT (AXIOS — FIXED PATH) */
   const fetchProduct = useCallback(
     async (barcode) => {
       if (!barcode) return;
 
       try {
-        const res = await api.get(`/items/barcode/${barcode}`);
+        const res = await api.get(`items/barcode/${barcode}`);
         const data = res.data;
 
         const product = {
