@@ -8,7 +8,7 @@ import {
   faPaperclip,
 } from "@fortawesome/free-solid-svg-icons";
 
-import api from "../api/axios"; // ✅ USE AXIOS INSTANCE
+import api from "../api/axios";
 
 /* =======================
    PAGE WRAPPER
@@ -51,23 +51,6 @@ const PageWrapper = ({ children }) => (
         width: 100%;
         border-radius: 12px;
         border: 3px solid #113F67;
-      }
-      @media (max-width: 768px) {
-        .page-wrapper {
-          width: calc(100% - 24px);
-          padding: 20px;
-          margin: 70px auto 20px;
-        }
-        .scanner-layout {
-          flex-direction: column;
-        }
-        .scanner-actions {
-          flex-direction: column;
-        }
-        .scanner-video {
-          max-height: 260px;
-          object-fit: cover;
-        }
       }
     `}</style>
   </div>
@@ -127,13 +110,23 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
 
-  /* 🔹 FETCH PRODUCT (AXIOS — FIXED PATH) */
+  /* 🔍 FETCH PRODUCT (DIAGNOSTIC) */
   const fetchProduct = useCallback(
     async (barcode) => {
-      if (!barcode) return;
+      console.log("🟡 fetchProduct CALLED with:", barcode);
+
+      if (!barcode) {
+        console.log("🔴 barcode is empty, aborting");
+        return;
+      }
+
+      const url = `items/barcode/${barcode}`;
+      console.log("🟢 Axios GET →", url);
 
       try {
-        const res = await api.get(`items/barcode/${barcode}`);
+        const res = await api.get(url);
+        console.log("✅ API RESPONSE:", res.data);
+
         const data = res.data;
 
         const product = {
@@ -150,17 +143,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
           onAddToCart({ ...product, quantity: 1 });
         }
       } catch (err) {
-        if (err.response?.status === 404) {
-          onAddToCart({
-            barcode,
-            name: "Unknown Product",
-            category: "N/A",
-            price: 0,
-            quantity: 1,
-          });
-        } else {
-          console.error("Barcode lookup failed:", err);
-        }
+        console.error("❌ API ERROR:", err);
       }
     },
     [cart, onAddToCart, onQuantityChange]
@@ -177,7 +160,6 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
           videoRef.current,
           (result) => {
             if (!result) return;
-
             const code = result.getText();
             if (code !== lastScannedRef.current) {
               lastScannedRef.current = code;
@@ -238,7 +220,12 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
                 onChange={(e) => setBarcodeInput(e.target.value)}
                 placeholder="Enter barcode manually"
               />
-              <PrimaryButton onClick={() => fetchProduct(barcodeInput)}>
+              <PrimaryButton
+                onClick={() => {
+                  console.log("🔵 ADD BUTTON CLICKED");
+                  fetchProduct(barcodeInput);
+                }}
+              >
                 Add
               </PrimaryButton>
             </div>
