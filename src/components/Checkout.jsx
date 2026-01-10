@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { useNavigate } from "react-router-dom";
+import api from "../api/axios"; // ✅ USE SHARED AXIOS INSTANCE
 
 function Checkout({ cart, setCart }) {
-  const BACKEND_URL = "http://localhost:5000/payment";
   const [paymentMethod, setPaymentMethod] = useState("gcash");
   const [cashCode, setCashCode] = useState("");
   const [pendingId, setPendingId] = useState(null);
@@ -16,19 +16,16 @@ function Checkout({ cart, setCart }) {
     0
   );
 
-  // -----------------------
-  // POLL FOR ADMIN-GENERATED CASH CODE
-  // -----------------------
+  /* -----------------------
+     POLL FOR ADMIN CASH CODE
+  ----------------------- */
   useEffect(() => {
     if (!pendingId) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(
-          `${BACKEND_URL}/cash/status/${pendingId}`,
-          { credentials: "include" }
-        );
-        const data = await res.json();
+        const res = await api.get(`payment/cash/status/${pendingId}`);
+        const data = res.data;
 
         if (data.code) {
           setCashCode(data.code);
@@ -44,74 +41,61 @@ function Checkout({ cart, setCart }) {
     return () => clearInterval(interval);
   }, [pendingId]);
 
-  // -----------------------
-  // PLACE ORDER
-  // -----------------------
+  /* -----------------------
+     PLACE ORDER
+  ----------------------- */
   const handlePlaceOrder = async () => {
     if (isPlacingOrder || pendingId) return;
 
-    setIsPlacingOrder(true);
-
     if (cart.length === 0) {
       alert("Your cart is empty!");
-      setIsPlacingOrder(false);
       return;
     }
 
+    setIsPlacingOrder(true);
+
     try {
       if (paymentMethod === "gcash") {
-        // --- GCash flow ---
-        const intentRes = await fetch(`${BACKEND_URL}/intent`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: totalPrice * 100, currency: "PHP" }),
+        // --- GCASH FLOW ---
+        const intentRes = await api.post("payment/intent", {
+          amount: totalPrice * 100,
+          currency: "PHP",
         });
-        const intentData = await intentRes.json();
-        if (!intentData.id) throw new Error("Failed to create payment intent");
 
-        const checkoutRes = await fetch(`${BACKEND_URL}/checkout`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            payment_intent_id: intentData.id,
-            success_url: "http://localhost:3000/success",
-            cancel_url: "http://localhost:3000/cancel",
-            cart,
-          }),
+        const intentId = intentRes.data.id;
+        if (!intentId) throw new Error("Failed to create payment intent");
+
+        const checkoutRes = await api.post("payment/checkout", {
+          payment_intent_id: intentId,
+          success_url: `${window.location.origin}/success`,
+          cancel_url: `${window.location.origin}/cancel`,
+          cart,
         });
-        const checkoutData = await checkoutRes.json();
-        if (!checkoutData.checkoutUrl)
-          throw new Error("Failed to create checkout session");
 
-        window.location.href = checkoutData.checkoutUrl;
+        const checkoutUrl = checkoutRes.data.checkoutUrl;
+        if (!checkoutUrl) throw new Error("Failed to create checkout session");
+
+        window.location.href = checkoutUrl;
 
       } else if (paymentMethod === "cash") {
-        // --- CASH FLOW (SECURE) ---
-        const res = await fetch(`${BACKEND_URL}/cash/start`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ cart }),
-        });
+        // --- CASH FLOW ---
+        const res = await api.post("payment/cash/start", { cart });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Cash request failed");
-
-        setPendingId(data.pending_id);
+        setPendingId(res.data.pending_id);
         setWaitingForAdmin(true);
         alert("Cash payment requested. Waiting for admin approval.");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to place order: " + err.message);
+      alert("Failed to place order.");
     } finally {
       setIsPlacingOrder(false);
     }
   };
 
-  // -----------------------
-  // CONFIRM CASH PAYMENT
-  // -----------------------
+  /* -----------------------
+     CONFIRM CASH PAYMENT
+  ----------------------- */
   const handleConfirmCash = async () => {
     if (!cashCode || !pendingId) {
       alert("Waiting for admin-generated cash code.");
@@ -119,17 +103,11 @@ function Checkout({ cart, setCart }) {
     }
 
     try {
-      const res = await fetch(`${BACKEND_URL}/cash/confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: cashCode }),
-        credentials: "include",
+      const res = await api.post("payment/cash/confirm", {
+        code: cashCode,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Confirm failed");
-
-      alert(data.message);
+      alert(res.data.message);
       setCart([]);
       localStorage.removeItem("cart");
       navigate("/success");
