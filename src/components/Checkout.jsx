@@ -27,6 +27,16 @@ function Checkout({ cart, setCart }) {
         const res = await api.get(`payment/cash/status/${pendingId}`);
         const data = res.data;
 
+        // ✅ HANDLE ADMIN / CUSTOMER CANCELLATION
+        if (data.status === "CANCELLED") {
+          alert("Your cash payment request was cancelled.");
+          setPendingId(null);
+          setWaitingForAdmin(false);
+          setCashCode("");
+          clearInterval(interval);
+          return;
+        }
+
         if (data.code) {
           setCashCode(data.code);
           setWaitingForAdmin(false);
@@ -117,6 +127,29 @@ function Checkout({ cart, setCart }) {
     }
   };
 
+  /* -----------------------
+     CANCEL CASH PAYMENT (CUSTOMER)
+  ----------------------- */
+  const handleCancelCash = async () => {
+    if (!pendingId) return;
+
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this cash payment?"
+    );
+    if (!confirmed) return;
+
+    try {
+      await api.post(`payment/cash/cancel/${pendingId}`);
+      alert("Cash payment cancelled.");
+      setPendingId(null);
+      setWaitingForAdmin(false);
+      setCashCode("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to cancel cash payment.");
+    }
+  };
+
   return (
     <div className="container mt-5">
       <div className="card shadow-sm p-4">
@@ -173,9 +206,19 @@ function Checkout({ cart, setCart }) {
         {paymentMethod === "cash" && (
           <div className="mb-3">
             {waitingForAdmin && (
-              <p className="text-warning">
-                Waiting for admin to generate your cash code…
-              </p>
+              <>
+                <p className="text-warning">
+                  Waiting for admin to generate your cash code…
+                </p>
+
+                {/* ✅ CUSTOMER CANCEL BUTTON */}
+                <button
+                  className="btn btn-outline-danger w-100 mb-3"
+                  onClick={handleCancelCash}
+                >
+                  Cancel Cash Request
+                </button>
+              </>
             )}
 
             {cashCode && (
