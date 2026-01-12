@@ -133,7 +133,7 @@ const PrimaryButton = ({ children, onClick, style }) => (
       alignItems: "center",
       justifyContent: "center",
       gap: "8px",
-      width: "100%",
+      width: "auto",
       ...style,
     }}
   >
@@ -263,18 +263,29 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
           </Section>
         </div>
 
-        {cart.length > 0 && (
-          <div className="scanner-column">
-            <Section>
-              <h3 style={{ color: "#113F67" }}>
-                <FontAwesomeIcon icon={faPaperclip} /> Scanned Items
-              </h3>
+        <div className="scanner-column">
+          <Section>
+            <h3 style={{ color: "#113F67" }}>
+              <FontAwesomeIcon icon={faPaperclip} /> Scanned Items
+            </h3>
 
-              {cart.map((item) => (
-                <div key={item.barcode} style={{ padding: "12px 0" }}>
+            {cart.length === 0 ? (
+              <p style={{ color: "#6B7280", marginTop: 12 }}>
+                No items yet...
+              </p>
+            ) : (
+              cart.map((item) => (
+                <div
+                  key={item.barcode}
+                  style={{
+                    borderBottom: "1px solid #E5E7EB",
+                    padding: "12px 0",
+                  }}
+                >
                   <strong>{item.name}</strong>
                   <p>₱{item.price.toFixed(2)}</p>
-                  <p>{item.category}</p>
+                  <p style={{ color: "#6B7280" }}>{item.category}</p>
+
                   <PrimaryButton
                     onClick={() => onDeleteItem(item.barcode)}
                     style={{ background: "#9d0909" }}
@@ -282,10 +293,11 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
                     Remove
                   </PrimaryButton>
                 </div>
-              ))}
-            </Section>
-          </div>
-        )}
+              ))
+            )}
+          </Section>
+        </div>
+
       </div>
     </PageWrapper>
   );
