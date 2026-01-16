@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -15,8 +16,13 @@ const PageWrapper = ({ children }) => (
   <div className="page-wrapper">
     {children}
     <style>{`
-      * { box-sizing: border-box; }
-      body { overflow-x: hidden; }
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        overflow-x: hidden;
+      }
 
       .page-wrapper {
         max-width: 1200px;
@@ -32,10 +38,12 @@ const PageWrapper = ({ children }) => (
         display: flex;
         gap: 24px;
         margin-top: 30px;
+        align-items: flex-start;
       }
 
       .scanner-column {
         flex: 1;
+        min-width: 0;
         width: 100%;
       }
 
@@ -50,6 +58,7 @@ const PageWrapper = ({ children }) => (
         padding: 10px;
         border-radius: 8px;
         border: 1px solid #CBD5E1;
+        width: 100%;
       }
 
       .scanner-video {
@@ -60,8 +69,12 @@ const PageWrapper = ({ children }) => (
         object-fit: cover;
       }
 
+      /* ======================
+         📱 MOBILE
+      ====================== */
       @media (max-width: 768px) {
         .page-wrapper {
+          max-width: 100%;
           margin: 0;
           padding: 16px;
           border-radius: 0;
@@ -75,20 +88,24 @@ const PageWrapper = ({ children }) => (
         .scanner-actions {
           flex-direction: column;
         }
+
+        .scanner-actions button {
+          width: 100%;
+        }
       }
     `}</style>
   </div>
 );
 
 /* =======================
-   SECTION
+   SECTION CARD
 ======================= */
 const Section = ({ children }) => (
   <div
     style={{
-      marginTop: 24,
-      padding: 24,
-      borderRadius: 16,
+      marginTop: "24px",
+      padding: "24px",
+      borderRadius: "16px",
       background: "#EBEBEB",
       border: "1px solid #E5E7EB",
       boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
@@ -108,11 +125,15 @@ const PrimaryButton = ({ children, onClick, style }) => (
       background: "#113F67",
       color: "#fff",
       border: "none",
-      borderRadius: 8,
+      borderRadius: "8px",
       padding: "12px 18px",
       fontWeight: 600,
       cursor: "pointer",
-      width: "100%",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+      width: "auto",
       ...style,
     }}
   >
@@ -125,8 +146,7 @@ const PrimaryButton = ({ children, onClick, style }) => (
 ======================= */
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
-  const readerRef = useRef(null);
+  const scannerRef = useRef(null);
   const lastScannedRef = useRef(null);
   const navigate = useNavigate();
 
@@ -155,72 +175,50 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         } else {
           onAddToCart({ ...product, quantity: 1 });
         }
-      } catch {
-        alert("Product not found");
+      } catch (err) {
+        console.error("Fetch product failed", err);
       }
     },
     [cart, onAddToCart, onQuantityChange]
   );
 
-  /* 🎥 START / STOP CAMERA (SAFE FOR VERCEL) */
+  /* 🎥 CAMERA */
   useEffect(() => {
-    if (!isScanning) return;
-    if (typeof window === "undefined") return;
+    const reader = new BrowserMultiFormatReader();
 
-    let stream;
-
-    const startCamera = async () => {
+    const start = async () => {
       try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        readerRef.current = new BrowserMultiFormatReader();
-
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      } catch (err) {
-        console.error(err);
+        scannerRef.current = await reader.decodeFromVideoDevice(
+          null,
+          videoRef.current,
+          (result) => {
+            if (!result) return;
+            const code = result.getText();
+            if (code !== lastScannedRef.current) {
+              lastScannedRef.current = code;
+              fetchProduct(code);
+            }
+          }
+        );
+      } catch {
         alert("Camera access denied");
         setIsScanning(false);
       }
     };
 
-    startCamera();
+    if (isScanning) start();
+    else if (scannerRef.current) {
+      scannerRef.current.stop();
+      scannerRef.current = null;
+    }
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+      if (scannerRef.current) {
+        scannerRef.current.stop();
+        scannerRef.current = null;
       }
     };
-  }, [isScanning]);
-
-  /* 📸 CAPTURE & SCAN */
-  const captureAndScan = async () => {
-    if (!videoRef.current || !readerRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    try {
-      const result = await readerRef.current.decodeFromCanvas(canvas);
-      const code = result.getText();
-
-      if (code && code !== lastScannedRef.current) {
-        lastScannedRef.current = code;
-        fetchProduct(code);
-      }
-    } catch {
-      alert("No barcode detected. Try again.");
-    }
-  };
+  }, [isScanning, fetchProduct]);
 
   return (
     <PageWrapper>
@@ -228,7 +226,8 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         onClick={() => navigate("/items")}
         style={{ maxWidth: 220, marginLeft: "auto" }}
       >
-        <FontAwesomeIcon icon={faCartShopping} /> Go to Cart
+        <FontAwesomeIcon icon={faCartShopping} />
+        Go to Cart
       </PrimaryButton>
 
       <h2 style={{ color: "#113F67", marginTop: 24 }}>
@@ -260,40 +259,33 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               </PrimaryButton>
             </div>
 
-            {isScanning && (
-              <>
-                <video
-                  ref={videoRef}
-                  className="scanner-video"
-                  playsInline
-                  muted
-                />
-
-                <PrimaryButton
-                  onClick={captureAndScan}
-                  style={{ marginTop: 12 }}
-                >
-                  📸 Capture & Scan
-                </PrimaryButton>
-
-                <canvas ref={canvasRef} style={{ display: "none" }} />
-              </>
-            )}
+            {isScanning && <video ref={videoRef} className="scanner-video" />}
           </Section>
         </div>
 
-        {cart.length > 0 && (
-          <div className="scanner-column">
-            <Section>
-              <h3 style={{ color: "#113F67" }}>
-                <FontAwesomeIcon icon={faPaperclip} /> Scanned Items
-              </h3>
+        <div className="scanner-column">
+          <Section>
+            <h3 style={{ color: "#113F67" }}>
+              <FontAwesomeIcon icon={faPaperclip} /> Scanned Items
+            </h3>
 
-              {cart.map((item) => (
-                <div key={item.barcode} style={{ padding: "12px 0" }}>
+            {cart.length === 0 ? (
+              <p style={{ color: "#6B7280", marginTop: 12 }}>
+                No items yet...
+              </p>
+            ) : (
+              cart.map((item) => (
+                <div
+                  key={item.barcode}
+                  style={{
+                    borderBottom: "1px solid #E5E7EB",
+                    padding: "12px 0",
+                  }}
+                >
                   <strong>{item.name}</strong>
                   <p>₱{item.price.toFixed(2)}</p>
-                  <p>{item.category}</p>
+                  <p style={{ color: "#6B7280" }}>{item.category}</p>
+
                   <PrimaryButton
                     onClick={() => onDeleteItem(item.barcode)}
                     style={{ background: "#9d0909" }}
@@ -301,10 +293,11 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
                     Remove
                   </PrimaryButton>
                 </div>
-              ))}
-            </Section>
-          </div>
-        )}
+              ))
+            )}
+          </Section>
+        </div>
+
       </div>
     </PageWrapper>
   );
