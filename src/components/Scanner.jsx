@@ -343,7 +343,6 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               </PrimaryButton>
             </div>
 
-            {/* CAMERA + OVERLAY */}
             {isScanning && (
               <div className="scanner-video-wrapper">
                 <video ref={videoRef} className="scanner-video" />
@@ -353,7 +352,6 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               </div>
             )}
 
-            {/* MANUAL NAME ADD */}
             <input
               className="scanner-input"
               style={{ marginTop: 16 }}
@@ -405,7 +403,14 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
                   <p style={{ color: "#6B7280" }}>{item.category}</p>
 
                   <PrimaryButton
-                    onClick={() => onDeleteItem(item.barcode)}
+                    onClick={() => {
+                      onDeleteItem(item.barcode);
+
+                      // 🔓 allow re-scanning this barcode
+                      if (lastScannedRef.current === item.barcode) {
+                        lastScannedRef.current = null;
+                      }
+                    }}
                     style={{ background: "#9d0909" }}
                   >
                     Remove
@@ -417,7 +422,6 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         </div>
       </div>
 
-      {/* SUCCESS POPUP */}
       {successItem && (
         <div className="success-modal">
           <div className="success-box">
