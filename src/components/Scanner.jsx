@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { BrowserMultiFormatReader } from "@zxing/browser";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -163,31 +162,36 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     [cart, onAddToCart, onQuantityChange]
   );
 
-  /* 🎥 START / STOP CAMERA */
+  /* 🎥 START / STOP CAMERA (SAFE FOR VERCEL) */
   useEffect(() => {
+    if (!isScanning) return;
+    if (typeof window === "undefined") return;
+
+    let stream;
+
     const startCamera = async () => {
       try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
         readerRef.current = new BrowserMultiFormatReader();
 
-        const stream = await navigator.mediaDevices.getUserMedia({
+        stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "environment" },
         });
 
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-      } catch {
+      } catch (err) {
+        console.error(err);
         alert("Camera access denied");
         setIsScanning(false);
       }
     };
 
-    if (isScanning) startCamera();
+    startCamera();
 
     return () => {
-      if (videoRef.current?.srcObject) {
-        videoRef.current.srcObject
-          .getTracks()
-          .forEach((track) => track.stop());
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [isScanning]);
