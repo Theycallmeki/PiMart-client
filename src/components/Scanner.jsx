@@ -225,7 +225,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
 
   /* 🔍 FETCH PRODUCT */
   const fetchProduct = useCallback(
-    async (barcode) => {
+    async (barcode, { resumeScan = false } = {}) => {
       if (!barcode) return;
 
       try {
@@ -251,7 +251,9 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
 
         setTimeout(() => {
           setSuccessItem(null);
-          setIsScanning(true);
+          if (resumeScan) {
+            setIsScanning(true);
+          }
         }, 1500);
       } catch (err) {
         console.error("Fetch product failed", err);
@@ -274,7 +276,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
             const code = result.getText();
             if (code !== lastScannedRef.current) {
               lastScannedRef.current = code;
-              fetchProduct(code);
+              fetchProduct(code, { resumeScan: true });
             }
           }
         );
