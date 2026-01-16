@@ -1,11 +1,10 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCamera,
   faCartShopping,
   faPaperclip,
-  faCheckCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import api from "../api/axios";
 
@@ -53,64 +52,12 @@ const PageWrapper = ({ children }) => (
         border: 1px solid #CBD5E1;
       }
 
-      .scanner-video-wrapper {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 4 / 3;
-        border-radius: 12px;
-        overflow: hidden;
-        background: black;
-        border: 3px solid #113F67;
-      }
-
       .scanner-video {
         width: 100%;
-        height: 100%;
+        border-radius: 12px;
+        border: 3px solid #113F67;
+        aspect-ratio: 4 / 3;
         object-fit: cover;
-      }
-
-      /* Scan overlay */
-      .scan-box {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 70%;
-        height: 40%;
-        transform: translate(-50%, -50%);
-        border: 2px solid lime;
-        border-radius: 12px;
-        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
-      }
-
-      .scan-line {
-        position: absolute;
-        width: 100%;
-        height: 2px;
-        background: lime;
-        animation: scan 2s linear infinite;
-      }
-
-      @keyframes scan {
-        from { top: 0; }
-        to { top: 100%; }
-      }
-
-      /* Toast */
-      .toast {
-        position: fixed;
-        bottom: 24px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #16A34A;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-weight: 600;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
-        z-index: 9999;
       }
 
       @media (max-width: 768px) {
@@ -178,43 +125,36 @@ const PrimaryButton = ({ children, onClick, style }) => (
 ======================= */
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   const readerRef = useRef(null);
-  const streamRef = useRef(null);
   const lastScannedRef = useRef(null);
   const navigate = useNavigate();
 
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
-  const [toast, setToast] = useState("");
-
-  /* 🔔 NOTIFICATION */
-  const notifyScan = (name) => {
-    setToast(`${name} added`);
-    if (navigator.vibrate) navigator.vibrate(150);
-    setTimeout(() => setToast(""), 2000);
-  };
 
   /* 🔍 FETCH PRODUCT */
   const fetchProduct = useCallback(
     async (barcode) => {
+      if (!barcode) return;
+
       try {
         const res = await api.get(`items/barcode/${barcode}`);
         const data = res.data;
 
-        const existing = cart.find((i) => i.barcode === data.barcode);
-        if (existing) {
-          onQuantityChange(data.barcode, existing.quantity + 1);
-        } else {
-          onAddToCart({
-            barcode: data.barcode,
-            name: data.name,
-            category: data.category,
-            price: parseFloat(data.price),
-            quantity: 1,
-          });
-        }
+        const product = {
+          barcode: data.barcode,
+          name: data.name,
+          category: data.category,
+          price: parseFloat(data.price),
+        };
 
-        notifyScan(data.name);
+        const existing = cart.find((i) => i.barcode === product.barcode);
+        if (existing) {
+          onQuantityChange(product.barcode, existing.quantity + 1);
+        } else {
+          onAddToCart({ ...product, quantity: 1 });
+        }
       } catch {
         alert("Product not found");
       }
@@ -222,64 +162,68 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     [cart, onAddToCart, onQuantityChange]
   );
 
-  /* 🎥 START CAMERA — USER GESTURE SAFE */
-  const startCamera = async () => {
+  /* 🎥 START / STOP CAMERA (SAFE FOR VERCEL) */
+  useEffect(() => {
+    if (!isScanning) return;
+    if (typeof window === "undefined") return;
+
+    let stream;
+
+    const startCamera = async () => {
+      try {
+        const { BrowserMultiFormatReader } = await import("@zxing/browser");
+        readerRef.current = new BrowserMultiFormatReader();
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      } catch (err) {
+        console.error(err);
+        alert("Camera access denied");
+        setIsScanning(false);
+      }
+    };
+
+    startCamera();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [isScanning]);
+
+  /* 📸 CAPTURE & SCAN */
+  const captureAndScan = async () => {
+    if (!videoRef.current || !readerRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: "environment" } },
-        audio: false,
-      });
+      const result = await readerRef.current.decodeFromCanvas(canvas);
+      const code = result.getText();
 
-      streamRef.current = stream;
-
-      const video = videoRef.current;
-      video.srcObject = stream;
-      video.muted = true;
-      video.playsInline = true;
-      await video.play();
-
-      setIsScanning(true);
-
-      const { BrowserMultiFormatReader } = await import("@zxing/browser");
-      readerRef.current = new BrowserMultiFormatReader();
-
-      readerRef.current.decodeFromVideoElementContinuously(video, (result) => {
-        if (!result) return;
-
-        const code = result.getText();
-        if (code !== lastScannedRef.current) {
-          lastScannedRef.current = code;
-          fetchProduct(code);
-          stopCamera();
-        }
-      });
-    } catch (err) {
-      alert("Camera permission denied");
-    }
-  };
-
-  /* 🛑 STOP CAMERA */
-  const stopCamera = () => {
-    setIsScanning(false);
-    try {
-      readerRef.current?.reset?.();
-    } catch {}
-    readerRef.current = null;
-
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+      if (code && code !== lastScannedRef.current) {
+        lastScannedRef.current = code;
+        fetchProduct(code);
+      }
+    } catch {
+      alert("No barcode detected. Try again.");
     }
   };
 
   return (
     <PageWrapper>
-      {toast && (
-        <div className="toast">
-          <FontAwesomeIcon icon={faCheckCircle} /> {toast}
-        </div>
-      )}
-
       <PrimaryButton
         onClick={() => navigate("/items")}
         style={{ maxWidth: 220, marginLeft: "auto" }}
@@ -295,7 +239,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         <div className="scanner-column">
           <Section>
             <PrimaryButton
-              onClick={isScanning ? stopCamera : startCamera}
+              onClick={() => setIsScanning(!isScanning)}
               style={{
                 background: isScanning ? "#DC2626" : "#16A34A",
                 marginBottom: 16,
@@ -317,12 +261,23 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
             </div>
 
             {isScanning && (
-              <div className="scanner-video-wrapper">
-                <video ref={videoRef} className="scanner-video" />
-                <div className="scan-box">
-                  <div className="scan-line" />
-                </div>
-              </div>
+              <>
+                <video
+                  ref={videoRef}
+                  className="scanner-video"
+                  playsInline
+                  muted
+                />
+
+                <PrimaryButton
+                  onClick={captureAndScan}
+                  style={{ marginTop: 12 }}
+                >
+                  📸 Capture & Scan
+                </PrimaryButton>
+
+                <canvas ref={canvasRef} style={{ display: "none" }} />
+              </>
             )}
           </Section>
         </div>
