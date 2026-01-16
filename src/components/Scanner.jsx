@@ -16,13 +16,8 @@ const PageWrapper = ({ children }) => (
   <div className="page-wrapper">
     {children}
     <style>{`
-      * {
-        box-sizing: border-box;
-      }
-
-      body {
-        overflow-x: hidden;
-      }
+      * { box-sizing: border-box; }
+      body { overflow-x: hidden; }
 
       .page-wrapper {
         max-width: 1200px;
@@ -38,12 +33,10 @@ const PageWrapper = ({ children }) => (
         display: flex;
         gap: 24px;
         margin-top: 30px;
-        align-items: flex-start;
       }
 
       .scanner-column {
         flex: 1;
-        min-width: 0;
         width: 100%;
       }
 
@@ -58,7 +51,6 @@ const PageWrapper = ({ children }) => (
         padding: 10px;
         border-radius: 8px;
         border: 1px solid #CBD5E1;
-        width: 100%;
       }
 
       .scanner-video {
@@ -69,12 +61,8 @@ const PageWrapper = ({ children }) => (
         object-fit: cover;
       }
 
-      /* ======================
-         MOBILE
-      ====================== */
       @media (max-width: 768px) {
         .page-wrapper {
-          max-width: 100%;
           margin: 0;
           padding: 16px;
           border-radius: 0;
@@ -88,24 +76,20 @@ const PageWrapper = ({ children }) => (
         .scanner-actions {
           flex-direction: column;
         }
-
-        .scanner-actions button {
-          width: 100%;
-        }
       }
     `}</style>
   </div>
 );
 
 /* =======================
-   SECTION CARD
+   SECTION
 ======================= */
 const Section = ({ children }) => (
   <div
     style={{
-      marginTop: "24px",
-      padding: "24px",
-      borderRadius: "16px",
+      marginTop: 24,
+      padding: 24,
+      borderRadius: 16,
       background: "#EBEBEB",
       border: "1px solid #E5E7EB",
       boxShadow: "0 6px 16px rgba(0,0,0,0.1)",
@@ -125,15 +109,11 @@ const PrimaryButton = ({ children, onClick, style }) => (
       background: "#113F67",
       color: "#fff",
       border: "none",
-      borderRadius: "8px",
+      borderRadius: 8,
       padding: "12px 18px",
       fontWeight: 600,
       cursor: "pointer",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "8px",
-      width: "auto",
+      width: "100%",
       ...style,
     }}
   >
@@ -146,7 +126,8 @@ const PrimaryButton = ({ children, onClick, style }) => (
 ======================= */
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
-  const scannerRef = useRef(null);
+  const canvasRef = useRef(null);
+  const readerRef = useRef(null);
   const lastScannedRef = useRef(null);
   const navigate = useNavigate();
 
@@ -175,50 +156,67 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         } else {
           onAddToCart({ ...product, quantity: 1 });
         }
-      } catch (err) {
-        console.error("Fetch product failed", err);
+      } catch {
+        alert("Product not found");
       }
     },
     [cart, onAddToCart, onQuantityChange]
   );
 
-  /* 🎥 CAMERA */
+  /* 🎥 START / STOP CAMERA */
   useEffect(() => {
-    const reader = new BrowserMultiFormatReader();
-
-    const start = async () => {
+    const startCamera = async () => {
       try {
-        scannerRef.current = await reader.decodeFromVideoDevice(
-          null,
-          videoRef.current,
-          (result) => {
-            if (!result) return;
-            const code = result.getText();
-            if (code !== lastScannedRef.current) {
-              lastScannedRef.current = code;
-              fetchProduct(code);
-            }
-          }
-        );
+        readerRef.current = new BrowserMultiFormatReader();
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
       } catch {
         alert("Camera access denied");
         setIsScanning(false);
       }
     };
 
-    if (isScanning) start();
-    else if (scannerRef.current) {
-      scannerRef.current.stop();
-      scannerRef.current = null;
-    }
+    if (isScanning) startCamera();
 
     return () => {
-      if (scannerRef.current) {
-        scannerRef.current.stop();
-        scannerRef.current = null;
+      if (videoRef.current?.srcObject) {
+        videoRef.current.srcObject
+          .getTracks()
+          .forEach((track) => track.stop());
       }
     };
-  }, [isScanning, fetchProduct]);
+  }, [isScanning]);
+
+  /* 📸 CAPTURE & SCAN */
+  const captureAndScan = async () => {
+    if (!videoRef.current || !readerRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    try {
+      const result = await readerRef.current.decodeFromCanvas(canvas);
+      const code = result.getText();
+
+      if (code && code !== lastScannedRef.current) {
+        lastScannedRef.current = code;
+        fetchProduct(code);
+      }
+    } catch {
+      alert("No barcode detected. Try again.");
+    }
+  };
 
   return (
     <PageWrapper>
@@ -226,8 +224,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         onClick={() => navigate("/items")}
         style={{ maxWidth: 220, marginLeft: "auto" }}
       >
-        <FontAwesomeIcon icon={faCartShopping} />
-        Go to Cart
+        <FontAwesomeIcon icon={faCartShopping} /> Go to Cart
       </PrimaryButton>
 
       <h2 style={{ color: "#113F67", marginTop: 24 }}>
@@ -259,33 +256,40 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               </PrimaryButton>
             </div>
 
-            {isScanning && <video ref={videoRef} className="scanner-video" />}
+            {isScanning && (
+              <>
+                <video
+                  ref={videoRef}
+                  className="scanner-video"
+                  playsInline
+                  muted
+                />
+
+                <PrimaryButton
+                  onClick={captureAndScan}
+                  style={{ marginTop: 12 }}
+                >
+                  📸 Capture & Scan
+                </PrimaryButton>
+
+                <canvas ref={canvasRef} style={{ display: "none" }} />
+              </>
+            )}
           </Section>
         </div>
 
-        <div className="scanner-column">
-          <Section>
-            <h3 style={{ color: "#113F67" }}>
-              <FontAwesomeIcon icon={faPaperclip} /> Scanned Items
-            </h3>
+        {cart.length > 0 && (
+          <div className="scanner-column">
+            <Section>
+              <h3 style={{ color: "#113F67" }}>
+                <FontAwesomeIcon icon={faPaperclip} /> Scanned Items
+              </h3>
 
-            {cart.length === 0 ? (
-              <p style={{ color: "#6B7280", marginTop: 12 }}>
-                No items yet...
-              </p>
-            ) : (
-              cart.map((item) => (
-                <div
-                  key={item.barcode}
-                  style={{
-                    borderBottom: "1px solid #E5E7EB",
-                    padding: "12px 0",
-                  }}
-                >
+              {cart.map((item) => (
+                <div key={item.barcode} style={{ padding: "12px 0" }}>
                   <strong>{item.name}</strong>
                   <p>₱{item.price.toFixed(2)}</p>
-                  <p style={{ color: "#6B7280" }}>{item.category}</p>
-
+                  <p>{item.category}</p>
                   <PrimaryButton
                     onClick={() => onDeleteItem(item.barcode)}
                     style={{ background: "#9d0909" }}
@@ -293,11 +297,10 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
                     Remove
                   </PrimaryButton>
                 </div>
-              ))
-            )}
-          </Section>
-        </div>
-
+              ))}
+            </Section>
+          </div>
+        )}
       </div>
     </PageWrapper>
   );
