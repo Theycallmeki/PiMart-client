@@ -39,25 +39,48 @@ const PageWrapper = ({ children }) => (
         width: 100%;
       }
 
-      .scanner-actions {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 16px;
-      }
-
-      .scanner-input {
-        flex: 1;
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid #CBD5E1;
+      .scanner-video-wrapper {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 3px solid #113F67;
+        background: black;
       }
 
       .scanner-video {
         width: 100%;
-        border-radius: 12px;
-        border: 3px solid #113F67;
-        aspect-ratio: 4 / 3;
+        height: 100%;
         object-fit: cover;
+      }
+
+      /* 🔲 Scan Box Overlay */
+      .scan-box {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 70%;
+        height: 40%;
+        transform: translate(-50%, -50%);
+        border: 2px solid rgba(0,255,0,0.9);
+        border-radius: 12px;
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+      }
+
+      /* 🔴 Animated Scan Line */
+      .scan-line {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: lime;
+        animation: scan 2s linear infinite;
+      }
+
+      @keyframes scan {
+        0% { top: 0; }
+        100% { top: 100%; }
       }
 
       @media (max-width: 768px) {
@@ -69,10 +92,6 @@ const PageWrapper = ({ children }) => (
         }
 
         .scanner-layout {
-          flex-direction: column;
-        }
-
-        .scanner-actions {
           flex-direction: column;
         }
       }
@@ -125,7 +144,6 @@ const PrimaryButton = ({ children, onClick, style }) => (
 ======================= */
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
   const readerRef = useRef(null);
   const lastScannedRef = useRef(null);
   const navigate = useNavigate();
@@ -162,24 +180,45 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     [cart, onAddToCart, onQuantityChange]
   );
 
-  /* 🎥 START / STOP CAMERA (SAFE FOR VERCEL) */
+  /* 🎥 CAMERA + CONTINUOUS SCAN */
   useEffect(() => {
     if (!isScanning) return;
     if (typeof window === "undefined") return;
 
     let stream;
+    let cancelled = false;
 
-    const startCamera = async () => {
+    const startScanner = async () => {
       try {
         const { BrowserMultiFormatReader } = await import("@zxing/browser");
+
         readerRef.current = new BrowserMultiFormatReader();
 
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
+          video: {
+            facingMode: "environment",
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
         });
 
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", true);
         await videoRef.current.play();
+
+        readerRef.current.decodeFromVideoElementContinuously(
+          videoRef.current,
+          (result) => {
+            if (cancelled || !result) return;
+
+            const code = result.getText();
+            if (code !== lastScannedRef.current) {
+              lastScannedRef.current = code;
+              fetchProduct(code);
+              setIsScanning(false); // stop after success
+            }
+          }
+        );
       } catch (err) {
         console.error(err);
         alert("Camera access denied");
@@ -187,40 +226,14 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
       }
     };
 
-    startCamera();
+    startScanner();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      cancelled = true;
+      if (readerRef.current) readerRef.current.reset();
+      if (stream) stream.getTracks().forEach((t) => t.stop());
     };
-  }, [isScanning]);
-
-  /* 📸 CAPTURE & SCAN */
-  const captureAndScan = async () => {
-    if (!videoRef.current || !readerRef.current) return;
-
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    try {
-      const result = await readerRef.current.decodeFromCanvas(canvas);
-      const code = result.getText();
-
-      if (code && code !== lastScannedRef.current) {
-        lastScannedRef.current = code;
-        fetchProduct(code);
-      }
-    } catch {
-      alert("No barcode detected. Try again.");
-    }
-  };
+  }, [isScanning, fetchProduct]);
 
   return (
     <PageWrapper>
@@ -248,35 +261,42 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               {isScanning ? "Stop Camera" : "Start Camera"}
             </PrimaryButton>
 
-            <div className="scanner-actions">
-              <input
-                className="scanner-input"
-                value={barcodeInput}
-                onChange={(e) => setBarcodeInput(e.target.value)}
-                placeholder="Enter barcode manually"
-              />
-              <PrimaryButton onClick={() => fetchProduct(barcodeInput)}>
-                Add
-              </PrimaryButton>
-            </div>
+            <input
+              value={barcodeInput}
+              onChange={(e) => setBarcodeInput(e.target.value)}
+              placeholder="Enter barcode manually"
+              style={{
+                width: "100%",
+                padding: 10,
+                borderRadius: 8,
+                border: "1px solid #CBD5E1",
+                marginBottom: 10,
+              }}
+            />
+
+            <PrimaryButton onClick={() => fetchProduct(barcodeInput)}>
+              Add Manually
+            </PrimaryButton>
 
             {isScanning && (
               <>
-                <video
-                  ref={videoRef}
-                  className="scanner-video"
-                  playsInline
-                  muted
-                />
+                <div className="scanner-video-wrapper">
+                  <video
+                    ref={videoRef}
+                    className="scanner-video"
+                    muted
+                    playsInline
+                  />
 
-                <PrimaryButton
-                  onClick={captureAndScan}
-                  style={{ marginTop: 12 }}
-                >
-                  📸 Capture & Scan
-                </PrimaryButton>
+                  {/* 🔲 Overlay */}
+                  <div className="scan-box">
+                    <div className="scan-line" />
+                  </div>
+                </div>
 
-                <canvas ref={canvasRef} style={{ display: "none" }} />
+                <p style={{ textAlign: "center", marginTop: 8 }}>
+                  Align barcode within the box
+                </p>
               </>
             )}
           </Section>
