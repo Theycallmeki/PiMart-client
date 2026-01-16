@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCamera,
   faCartShopping,
   faPaperclip,
+  faCheckCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import api from "../api/axios";
 
@@ -36,15 +37,29 @@ const PageWrapper = ({ children }) => (
 
       .scanner-column {
         flex: 1;
+        width: 100%;
+      }
+
+      .scanner-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .scanner-input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #CBD5E1;
       }
 
       .scanner-video-wrapper {
         position: relative;
         width: 100%;
         aspect-ratio: 4 / 3;
-        background: black;
         border-radius: 12px;
         overflow: hidden;
+        background: black;
         border: 3px solid #113F67;
       }
 
@@ -62,14 +77,13 @@ const PageWrapper = ({ children }) => (
         width: 70%;
         height: 40%;
         transform: translate(-50%, -50%);
-        border: 2px solid rgba(0,255,0,0.9);
+        border: 2px solid lime;
         border-radius: 12px;
         box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
       }
 
       .scan-line {
         position: absolute;
-        left: 0;
         width: 100%;
         height: 2px;
         background: lime;
@@ -77,8 +91,26 @@ const PageWrapper = ({ children }) => (
       }
 
       @keyframes scan {
-        0% { top: 0; }
-        100% { top: 100%; }
+        from { top: 0; }
+        to { top: 100%; }
+      }
+
+      /* Toast */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #16A34A;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-weight: 600;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+        z-index: 9999;
       }
 
       @media (max-width: 768px) {
@@ -88,7 +120,12 @@ const PageWrapper = ({ children }) => (
           border-radius: 0;
           box-shadow: none;
         }
+
         .scanner-layout {
+          flex-direction: column;
+        }
+
+        .scanner-actions {
           flex-direction: column;
         }
       }
@@ -142,34 +179,42 @@ const PrimaryButton = ({ children, onClick, style }) => (
 const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
   const videoRef = useRef(null);
   const readerRef = useRef(null);
+  const streamRef = useRef(null);
   const lastScannedRef = useRef(null);
   const navigate = useNavigate();
 
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [toast, setToast] = useState("");
+
+  /* 🔔 NOTIFICATION */
+  const notifyScan = (name) => {
+    setToast(`${name} added`);
+    if (navigator.vibrate) navigator.vibrate(150);
+    setTimeout(() => setToast(""), 2000);
+  };
 
   /* 🔍 FETCH PRODUCT */
   const fetchProduct = useCallback(
     async (barcode) => {
-      if (!barcode) return;
-
       try {
         const res = await api.get(`items/barcode/${barcode}`);
         const data = res.data;
 
-        const product = {
-          barcode: data.barcode,
-          name: data.name,
-          category: data.category,
-          price: parseFloat(data.price),
-        };
-
-        const existing = cart.find((i) => i.barcode === product.barcode);
+        const existing = cart.find((i) => i.barcode === data.barcode);
         if (existing) {
-          onQuantityChange(product.barcode, existing.quantity + 1);
+          onQuantityChange(data.barcode, existing.quantity + 1);
         } else {
-          onAddToCart({ ...product, quantity: 1 });
+          onAddToCart({
+            barcode: data.barcode,
+            name: data.name,
+            category: data.category,
+            price: parseFloat(data.price),
+            quantity: 1,
+          });
         }
+
+        notifyScan(data.name);
       } catch {
         alert("Product not found");
       }
@@ -177,71 +222,64 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     [cart, onAddToCart, onQuantityChange]
   );
 
-  /* 🎥 CAMERA + CONTINUOUS SCAN (MOBILE SAFE) */
-  useEffect(() => {
-    if (!isScanning) return;
-    if (typeof window === "undefined") return;
+  /* 🎥 START CAMERA — USER GESTURE SAFE */
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: "environment" } },
+        audio: false,
+      });
 
-    let stream;
-    let cancelled = false;
+      streamRef.current = stream;
 
-    const startScanner = async () => {
-      try {
-        const { BrowserMultiFormatReader } = await import("@zxing/browser");
-        readerRef.current = new BrowserMultiFormatReader();
+      const video = videoRef.current;
+      video.srcObject = stream;
+      video.muted = true;
+      video.playsInline = true;
+      await video.play();
 
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } },
-          audio: false,
-        });
+      setIsScanning(true);
 
-        const video = videoRef.current;
-        video.srcObject = stream;
-        video.setAttribute("playsinline", true);
-        video.muted = true; // REQUIRED FOR iOS
-        await video.play();
+      const { BrowserMultiFormatReader } = await import("@zxing/browser");
+      readerRef.current = new BrowserMultiFormatReader();
 
-        readerRef.current.decodeFromVideoElementContinuously(
-          video,
-          (result) => {
-            if (cancelled || !result) return;
+      readerRef.current.decodeFromVideoElementContinuously(video, (result) => {
+        if (!result) return;
 
-            const code = result.getText();
-            if (code !== lastScannedRef.current) {
-              lastScannedRef.current = code;
-              fetchProduct(code);
-              setIsScanning(false); // stop after scan
-            }
-          }
-        );
-      } catch (err) {
-        console.error(err.name, err.message);
-        alert("Camera permission denied or unavailable");
-        setIsScanning(false);
-      }
-    };
-
-    startScanner();
-
-    return () => {
-      cancelled = true;
-
-      try {
-        if (readerRef.current?.reset) {
-          readerRef.current.reset();
+        const code = result.getText();
+        if (code !== lastScannedRef.current) {
+          lastScannedRef.current = code;
+          fetchProduct(code);
+          stopCamera();
         }
-      } catch {}
+      });
+    } catch (err) {
+      alert("Camera permission denied");
+    }
+  };
 
-      readerRef.current = null;
+  /* 🛑 STOP CAMERA */
+  const stopCamera = () => {
+    setIsScanning(false);
+    try {
+      readerRef.current?.reset?.();
+    } catch {}
+    readerRef.current = null;
 
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, [isScanning, fetchProduct]);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+  };
 
   return (
     <PageWrapper>
+      {toast && (
+        <div className="toast">
+          <FontAwesomeIcon icon={faCheckCircle} /> {toast}
+        </div>
+      )}
+
       <PrimaryButton
         onClick={() => navigate("/items")}
         style={{ maxWidth: 220, marginLeft: "auto" }}
@@ -257,7 +295,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         <div className="scanner-column">
           <Section>
             <PrimaryButton
-              onClick={() => setIsScanning((s) => !s)}
+              onClick={isScanning ? stopCamera : startCamera}
               style={{
                 background: isScanning ? "#DC2626" : "#16A34A",
                 marginBottom: 16,
@@ -266,41 +304,25 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               {isScanning ? "Stop Camera" : "Start Camera"}
             </PrimaryButton>
 
-            <input
-              value={barcodeInput}
-              onChange={(e) => setBarcodeInput(e.target.value)}
-              placeholder="Enter barcode manually"
-              style={{
-                width: "100%",
-                padding: 10,
-                borderRadius: 8,
-                border: "1px solid #CBD5E1",
-                marginBottom: 10,
-              }}
-            />
-
-            <PrimaryButton onClick={() => fetchProduct(barcodeInput)}>
-              Add Manually
-            </PrimaryButton>
+            <div className="scanner-actions">
+              <input
+                className="scanner-input"
+                value={barcodeInput}
+                onChange={(e) => setBarcodeInput(e.target.value)}
+                placeholder="Enter barcode manually"
+              />
+              <PrimaryButton onClick={() => fetchProduct(barcodeInput)}>
+                Add
+              </PrimaryButton>
+            </div>
 
             {isScanning && (
-              <>
-                <div className="scanner-video-wrapper">
-                  <video
-                    ref={videoRef}
-                    className="scanner-video"
-                    playsInline
-                    muted
-                  />
-                  <div className="scan-box">
-                    <div className="scan-line" />
-                  </div>
+              <div className="scanner-video-wrapper">
+                <video ref={videoRef} className="scanner-video" />
+                <div className="scan-box">
+                  <div className="scan-line" />
                 </div>
-
-                <p style={{ textAlign: "center", marginTop: 8 }}>
-                  Align barcode inside the box
-                </p>
-              </>
+              </div>
             )}
           </Section>
         </div>
