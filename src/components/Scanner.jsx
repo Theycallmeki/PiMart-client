@@ -70,7 +70,7 @@ const PageWrapper = ({ children }) => (
       }
 
       /* ======================
-         📱 MOBILE
+         MOBILE
       ====================== */
       @media (max-width: 768px) {
         .page-wrapper {
