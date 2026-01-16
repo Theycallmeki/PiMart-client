@@ -36,17 +36,16 @@ const PageWrapper = ({ children }) => (
 
       .scanner-column {
         flex: 1;
-        width: 100%;
       }
 
       .scanner-video-wrapper {
         position: relative;
         width: 100%;
         aspect-ratio: 4 / 3;
+        background: black;
         border-radius: 12px;
         overflow: hidden;
         border: 3px solid #113F67;
-        background: black;
       }
 
       .scanner-video {
@@ -55,7 +54,7 @@ const PageWrapper = ({ children }) => (
         object-fit: cover;
       }
 
-      /* 🔲 Scan Box Overlay */
+      /* Scan overlay */
       .scan-box {
         position: absolute;
         top: 50%;
@@ -65,10 +64,9 @@ const PageWrapper = ({ children }) => (
         transform: translate(-50%, -50%);
         border: 2px solid rgba(0,255,0,0.9);
         border-radius: 12px;
-        box-shadow: 0 0 0 9999px rgba(0,0,0,0.4);
+        box-shadow: 0 0 0 9999px rgba(0,0,0,0.45);
       }
 
-      /* 🔴 Animated Scan Line */
       .scan-line {
         position: absolute;
         left: 0;
@@ -90,7 +88,6 @@ const PageWrapper = ({ children }) => (
           border-radius: 0;
           box-shadow: none;
         }
-
         .scanner-layout {
           flex-direction: column;
         }
@@ -180,7 +177,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     [cart, onAddToCart, onQuantityChange]
   );
 
-  /* 🎥 CAMERA + CONTINUOUS SCAN */
+  /* 🎥 CAMERA + CONTINUOUS SCAN (MOBILE SAFE) */
   useEffect(() => {
     if (!isScanning) return;
     if (typeof window === "undefined") return;
@@ -191,23 +188,21 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     const startScanner = async () => {
       try {
         const { BrowserMultiFormatReader } = await import("@zxing/browser");
-
         readerRef.current = new BrowserMultiFormatReader();
 
         stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: "environment",
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-          },
+          video: { facingMode: { ideal: "environment" } },
+          audio: false,
         });
 
-        videoRef.current.srcObject = stream;
-        videoRef.current.setAttribute("playsinline", true);
-        await videoRef.current.play();
+        const video = videoRef.current;
+        video.srcObject = stream;
+        video.setAttribute("playsinline", true);
+        video.muted = true; // REQUIRED FOR iOS
+        await video.play();
 
         readerRef.current.decodeFromVideoElementContinuously(
-          videoRef.current,
+          video,
           (result) => {
             if (cancelled || !result) return;
 
@@ -215,13 +210,13 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
             if (code !== lastScannedRef.current) {
               lastScannedRef.current = code;
               fetchProduct(code);
-              setIsScanning(false); // stop after success
+              setIsScanning(false); // stop after scan
             }
           }
         );
       } catch (err) {
-        console.error(err);
-        alert("Camera access denied");
+        console.error(err.name, err.message);
+        alert("Camera permission denied or unavailable");
         setIsScanning(false);
       }
     };
@@ -230,8 +225,18 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
 
     return () => {
       cancelled = true;
-      if (readerRef.current) readerRef.current.reset();
-      if (stream) stream.getTracks().forEach((t) => t.stop());
+
+      try {
+        if (readerRef.current?.reset) {
+          readerRef.current.reset();
+        }
+      } catch {}
+
+      readerRef.current = null;
+
+      if (stream) {
+        stream.getTracks().forEach((t) => t.stop());
+      }
     };
   }, [isScanning, fetchProduct]);
 
@@ -252,7 +257,7 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         <div className="scanner-column">
           <Section>
             <PrimaryButton
-              onClick={() => setIsScanning(!isScanning)}
+              onClick={() => setIsScanning((s) => !s)}
               style={{
                 background: isScanning ? "#DC2626" : "#16A34A",
                 marginBottom: 16,
@@ -284,18 +289,16 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
                   <video
                     ref={videoRef}
                     className="scanner-video"
-                    muted
                     playsInline
+                    muted
                   />
-
-                  {/* 🔲 Overlay */}
                   <div className="scan-box">
                     <div className="scan-line" />
                   </div>
                 </div>
 
                 <p style={{ textAlign: "center", marginTop: 8 }}>
-                  Align barcode within the box
+                  Align barcode inside the box
                 </p>
               </>
             )}
