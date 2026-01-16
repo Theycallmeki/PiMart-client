@@ -61,12 +61,73 @@ const PageWrapper = ({ children }) => (
         width: 100%;
       }
 
+      .scanner-video-wrapper {
+        position: relative;
+      }
+
       .scanner-video {
         width: 100%;
         border-radius: 12px;
         border: 3px solid #113F67;
         aspect-ratio: 4 / 3;
         object-fit: cover;
+      }
+
+      /* 🔲 BARCODE OVERLAY */
+      .barcode-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+      }
+
+      .barcode-box {
+        width: 70%;
+        height: 45%;
+        border: 3px dashed #22C55E;
+        border-radius: 12px;
+        background: rgba(0,0,0,0.15);
+      }
+
+      /* ✅ SUCCESS POPUP */
+      .success-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+      }
+
+      .success-box {
+        background: white;
+        padding: 32px;
+        border-radius: 16px;
+        text-align: center;
+        min-width: 280px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+      }
+
+      /* ✍️ AUTOCOMPLETE */
+      .suggestions {
+        background: white;
+        border: 1px solid #CBD5E1;
+        border-radius: 8px;
+        margin-top: 6px;
+        max-height: 180px;
+        overflow-y: auto;
+      }
+
+      .suggestion-item {
+        padding: 10px;
+        cursor: pointer;
+      }
+
+      .suggestion-item:hover {
+        background: #F3F4F6;
       }
 
       /* ======================
@@ -152,6 +213,15 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
 
   const [barcodeInput, setBarcodeInput] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [successItem, setSuccessItem] = useState(null);
+
+  const [items, setItems] = useState([]);
+  const [nameInput, setNameInput] = useState("");
+
+  /* 📦 LOAD ITEMS FOR AUTOCOMPLETE */
+  useEffect(() => {
+    api.get("/items").then((res) => setItems(res.data));
+  }, []);
 
   /* 🔍 FETCH PRODUCT */
   const fetchProduct = useCallback(
@@ -175,6 +245,14 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
         } else {
           onAddToCart({ ...product, quantity: 1 });
         }
+
+        setSuccessItem(product);
+        setIsScanning(false);
+
+        setTimeout(() => {
+          setSuccessItem(null);
+          setIsScanning(true);
+        }, 1500);
       } catch (err) {
         console.error("Fetch product failed", err);
       }
@@ -220,6 +298,10 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
     };
   }, [isScanning, fetchProduct]);
 
+  const suggestions = items.filter((i) =>
+    i.name.toLowerCase().startsWith(nameInput.toLowerCase())
+  );
+
   return (
     <PageWrapper>
       <PrimaryButton
@@ -259,7 +341,41 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
               </PrimaryButton>
             </div>
 
-            {isScanning && <video ref={videoRef} className="scanner-video" />}
+            {/* CAMERA + OVERLAY */}
+            {isScanning && (
+              <div className="scanner-video-wrapper">
+                <video ref={videoRef} className="scanner-video" />
+                <div className="barcode-overlay">
+                  <div className="barcode-box" />
+                </div>
+              </div>
+            )}
+
+            {/* MANUAL NAME ADD */}
+            <input
+              className="scanner-input"
+              style={{ marginTop: 16 }}
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              placeholder="Add item by name"
+            />
+
+            {nameInput && (
+              <div className="suggestions">
+                {suggestions.map((item) => (
+                  <div
+                    key={item.barcode}
+                    className="suggestion-item"
+                    onClick={() => {
+                      fetchProduct(item.barcode);
+                      setNameInput("");
+                    }}
+                  >
+                    {item.name}
+                  </div>
+                ))}
+              </div>
+            )}
           </Section>
         </div>
 
@@ -297,8 +413,17 @@ const Scanner = ({ cart, onAddToCart, onQuantityChange, onDeleteItem }) => {
             )}
           </Section>
         </div>
-
       </div>
+
+      {/* SUCCESS POPUP */}
+      {successItem && (
+        <div className="success-modal">
+          <div className="success-box">
+            <h3>Item Added</h3>
+            <strong>{successItem.name}</strong>
+          </div>
+        </div>
+      )}
     </PageWrapper>
   );
 };
